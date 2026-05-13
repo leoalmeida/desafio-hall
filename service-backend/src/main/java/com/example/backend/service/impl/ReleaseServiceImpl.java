@@ -80,7 +80,7 @@ public class ReleaseServiceImpl implements ReleaseService {
 
         log.info("Buscando releases para aplicação ID: {}", applicationId);
 
-        List<Release> entities = repository.findRelease(applicationId, version, environment, status);
+        List<Release> entities = repository.findRelease(applicationId, version, environment.name(), status.name());
 
         return entities.stream().map(ReleaseMapper::mapResponse).collect(Collectors.toList());
     }
