@@ -20,9 +20,14 @@ class ApplicationValidatorTest {
     @Test
     void constantesDevemTerValoresCorretos() {
         assertEquals(3, ApplicationValidator.NOME_MIN_LENGTH);
-        assertEquals(100, ApplicationValidator.NOME_MAX_LENGTH);
-        assertEquals(255, ApplicationValidator.DESCRICAO_MAX_LENGTH);
-        assertEquals("0", ApplicationValidator.MIN_VALOR_APPLICATION);
+        assertEquals(255, ApplicationValidator.NOME_MAX_LENGTH);
+        assertEquals(3, ApplicationValidator.OWNERTEAM_MIN_LENGTH);
+        assertEquals(255, ApplicationValidator.OWNERTEAM_MAX_LENGTH);
+        assertEquals(3, ApplicationValidator.REPOURL_MIN_LENGTH);
+        assertEquals(255, ApplicationValidator.REPOURL_MAX_LENGTH);
+        // Comentado - constantes não existem mais
+        // assertEquals(255, ApplicationValidator.DESCRICAO_MAX_LENGTH);
+        // assertEquals(1, ApplicationValidator.MIN_VALOR_APPLICATION);
     }
 
     @Test
