@@ -1,0 +1,58 @@
+<mat-card>
+  <mat-card-header>
+    <mat-card-title>Credenciais</mat-card-title>
+  </mat-card-header>
+  <mat-card-content>
+    @if (!isLoggedIn()) {
+      <form [formGroup]="formLogin" (ngSubmit)="onSubmit()" novalidate>
+        <p>
+          <mat-form-field appearance="fill">
+            <mat-label>Username</mat-label>
+            <input
+              type="text"
+              matInput
+              placeholder="Username"
+              formControlName="username"
+            />
+            @if (
+              formLogin.get("username")?.hasError("required") &&
+              formLogin.get("username")?.touched
+            ) {
+              <mat-error class="error-list">Usuário é obrigatório</mat-error>
+            }
+          </mat-form-field>
+        </p>
+        <p>
+          <mat-form-field appearance="fill">
+            <mat-label>Password</mat-label>
+            <input
+              type="password"
+              matInput
+              placeholder="Password"
+              formControlName="password"
+            />
+            @if (
+              formLogin.get("password")?.hasError("required") &&
+              formLogin.get("password")?.touched
+            ) {
+              <mat-error class="error-list">Senha é obrigatória</mat-error>
+            }
+          </mat-form-field>
+        </p>
+        <div class="button">
+          <button
+            matButton="elevated"
+            type="submit"
+            [disabled]="!formLogin.valid"
+            color="primary"
+          >
+            Login
+          </button>
+        </div>
+      </form>
+    } @else {
+      <p class="successMessage">Login realizado com sucesso!</p>
+      <button matButton (click)="reloadPage()">Entrar</button>
+    }
+  </mat-card-content>
+</mat-card>

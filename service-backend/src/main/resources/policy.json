@@ -1,0 +1,12 @@
+{
+    "minApprovals": 1,
+    "minScore": 70,
+    "freezeWindows": [
+        {
+            "env": "PROD",
+            "start": "22:00",
+            "end": "23:59"
+        }
+    ],
+    "approvalRoles": ["MANAGER", "SUPERVISOR"]
+}

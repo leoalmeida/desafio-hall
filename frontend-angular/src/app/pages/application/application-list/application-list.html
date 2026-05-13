@@ -1,0 +1,26 @@
+<div class="actions">
+  <button mat-raised-button color="primary" (click)="onCreateApplication()">
+    <mat-icon>add</mat-icon> Nova Aplicação
+  </button>
+</div>
+
+<app-searchbar (messageEvent)="handleMessage($event)" />
+
+<section class="results">
+  @for (application of paginatedApplicationList(); track application.id) {
+    <app-application-card [application]="application"></app-application-card>
+  } @empty {
+    <div class="not-found">Nenhuma aplicação disponível</div>
+  }
+</section>
+
+@if (filteredApplicationCount() > 0) {
+  <mat-paginator
+    [length]="filteredApplicationCount()"
+    [pageIndex]="pageIndex()"
+    [pageSize]="pageSize()"
+    [pageSizeOptions]="pageSizeOptions"
+    (page)="handlePageChange($event)"
+    aria-label="Paginação de aplicações"
+  ></mat-paginator>
+}

@@ -1,0 +1,78 @@
+<h2 mat-dialog-title>Criar nova release</h2>
+<mat-dialog-content>
+  <form [formGroup]="formRelease" novalidate (ngSubmit)="onSubmit()">
+    <mat-form-field class="full-width">
+      <mat-label>Aplicação</mat-label>
+      <input
+        matInput
+        placeholder="ID da Aplicação"
+        formControlName="applicationId"
+        required
+      />
+      @if (formRelease.get("applicationId")?.hasError("required")) {
+        <mat-error>Aplicação é obrigatória</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>Versão</mat-label>
+      <input
+        matInput
+        placeholder="Digite a versão"
+        formControlName="version"
+        required
+      />
+      @if (formRelease.get("version")?.hasError("required")) {
+        <mat-error>Versão é obrigatório</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>Ambiente</mat-label>
+      <mat-select formControlName="env" required>
+        @for (env of envTypeList(); track env.key) {
+          <mat-option [value]="env.key">{{ env.value }}</mat-option>
+        }
+      </mat-select>
+      @if (formRelease.get("env")?.hasError("required")) {
+        <mat-error>Ambiente é obrigatório</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>Status</mat-label>
+      <mat-select formControlName="status" required>
+        @for (status of statusTypeList(); track status.key) {
+          <mat-option [value]="status.key">{{ status.value }}</mat-option>
+        }
+      </mat-select>
+      @if (formRelease.get("status")?.hasError("required")) {
+        <mat-error>Status é obrigatório</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field class="full-width" floatLabel="always">
+      <mat-label>URL de evidencia</mat-label>
+      <input
+        matInput
+        placeholder="Digite a URL de evidencia"
+        formControlName="evidenceUrl"
+        required
+      />
+      @if (formRelease.get("evidenceUrl")?.hasError("required")) {
+        <mat-error>URL de evidencia é obrigatória</mat-error>
+      }
+    </mat-form-field>
+  </form>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button matButton (click)="onCancel()">Cancelar</button>
+  <button
+    matButton="filled"
+    color="primary"
+    (click)="onSubmit()"
+    [disabled]="!formRelease.valid"
+  >
+    Criar Release
+  </button>
+</mat-dialog-actions>

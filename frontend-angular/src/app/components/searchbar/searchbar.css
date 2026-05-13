@@ -1,0 +1,57 @@
+.searchContainer {
+  position: relative;
+  margin-bottom: 4rem;
+  padding-right: 0;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 0.8rem 2rem 0.8rem 2.2rem;
+  border: 2px solid #ddd;
+  border-radius: 25px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 10px 40px 0 #b0c1d9;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: #4caf50;
+  box-shadow: 0 0 8px rgba(76, 175, 80, 0.3);
+}
+
+.searchButton {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  font-size: 1.2rem;
+  color: #666;
+}
+
+.searchButton:hover {
+  color: #4caf50;
+}
+
+.clearButton {
+  position: absolute;
+  right: -4.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #666;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0 1rem;
+}
+
+.clearButton:hover {
+  color: #333;
+}

@@ -1,0 +1,35 @@
+container {
+  padding: 20px;
+}
+
+.not-found {
+  display: grid;
+  background: var(--accent-color);
+  width: 100%;
+  min-width: 400px;
+  grid-column-start: 1;
+  grid-column-end: 4;
+  font-size: 1.5rem;
+  font-weight: bold;
+  text-align: center;
+  border: 2px solid #ddd;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 1rem 0rem 1rem 0rem;
+}
+
+.actions {
+  margin: 20px 0;
+  display: flex;
+  gap: 10px;
+}
+
+.ativo {
+  color: rgb(49, 61, 49);
+  font-weight: bold;
+}
+
+.cancelado {
+  color: rgb(159, 159, 159);
+  font-weight: bold;
+}

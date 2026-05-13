@@ -1,0 +1,190 @@
+@use "@angular/material" as mat;
+
+@include mat.core();
+
+:root {
+  @include mat.theme(
+    (
+      color: (
+        primary: mat.$cyan-palette,
+        accent: mat.$blue-palette,
+        tertiary: mat.$orange-palette,
+        error: mat.$red-palette,
+      ),
+    )
+  );
+}
+
+html {
+  height: 100%;
+  @include mat.theme(
+    (
+      color: (
+        primary: mat.$cyan-palette,
+        accent: mat.$blue-palette,
+        tertiary: mat.$orange-palette,
+      ),
+      typography: Roboto,
+      density: 0,
+    )
+  );
+}
+
+body {
+  color-scheme: light;
+
+  background-color: var(--mat-sys-surface);
+  color: var(--mat-sys-on-surface);
+  font: var(--mat-sys-body-medium);
+
+  // Reset the user agent margin.
+  margin: 0;
+  height: 100%;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: Roboto, "Helvetica Neue", sans-serif;
+}
+
+mat-dialog-content {
+  min-width: 400px;
+  padding: 20px;
+}
+
+.fill-remaining-space {
+  flex: 1 1 auto;
+}
+
+.full-width {
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+mat-checkbox {
+  margin-bottom: 10px;
+}
+
+.snackbar-default {
+  background-color: #323232;
+  color: #fff;
+}
+
+.snackbar-success {
+  background-color: #4caf50;
+  color: #fff;
+}
+
+.snackbar-error {
+  background-color: #f44336;
+  color: #fff;
+}
+
+.input-currency {
+  text-align: right;
+}
+
+.results {
+  display: grid;
+  column-gap: 14px;
+  row-gap: 14px;
+  justify-content: space-around;
+  grid-template-columns: repeat(3, minmax(350px, 350px));
+  grid-auto-rows: max-content;
+}
+
+.card-normal {
+  background-color: #bcfcbf;
+}
+
+.card-button,
+.card-normal {
+  text-align: inherit;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 1rem 1rem 0 1rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border: none;
+}
+
+.card-button.open,
+.card-button.created,
+.card-button.closed {
+  cursor: pointer;
+  background: var(--accent-color);
+  transition: transform 0.2s ease;
+  transition: background-color 0.2s ease;
+}
+
+.card-button.open:hover,
+.card-button.created:hover,
+.card-button.closed:hover {
+  opacity: 0.8;
+  transform: translateY(-2px);
+}
+
+.card-button.created {
+  background-color: #d1e0f8;
+}
+
+.card-button.closed {
+  background-color: #e2a8a3;
+}
+
+.card-button.cancelled {
+  background-color: #00000044;
+}
+
+.card-button.title,
+.card-normal.title {
+  font-size: 1.3rem;
+  margin: 0 0 0.5rem 0;
+  color: var(--primary-color);
+  font-weight: bold;
+}
+
+.card-button.description,
+.card-normal.description {
+  font-size: 1rem;
+  margin: 0.6rem 0;
+}
+
+@media (min-width: 900px) and (max-width: 1200px) {
+  .results {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .not-found {
+    min-width: 300px;
+    grid-column-start: 1;
+    grid-column-end: 3;
+  }
+}
+
+@media (min-width: 600px) and (max-width: 900px) {
+  .results {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .not-found {
+    min-width: 300px;
+    grid-column-start: 1;
+    grid-column-end: 3;
+  }
+}
+
+@media (max-width: 600px) {
+  .results {
+    grid-template-columns: repeat(auto-fill, minmax(350px, 450px));
+  }
+  .not-found {
+    min-width: 200px;
+    grid-column-start: 1;
+    grid-column-end: 3;
+  }
+}

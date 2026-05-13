@@ -1,0 +1,49 @@
+.filters-bar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 24px 0;
+}
+
+.filter-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.filter-field {
+  min-width: 180px;
+}
+
+.clear-btn {
+  background: none;
+  border: 1px solid #aaa;
+  border-radius: 4px;
+  padding: 6px 12px;
+  cursor: pointer;
+  color: #555;
+  font-size: 0.85rem;
+  height: 40px;
+}
+
+.clear-btn:hover {
+  background: #f5f5f5;
+  color: #333;
+}
+
+.auditlog-container {
+  padding: 24px;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 16px;
+  color: gray;
+}

@@ -1,0 +1,11 @@
+<mat-card class="card-button" appearance="outlined" (click)="onApplicationReleases(application())">
+  <mat-card-title class="title">
+    <div class="badge-status" matBadgeSize="large" matBadgeColor="primary"></div>
+    {{ application().name }}
+  </mat-card-title>
+  <mat-card-content class="description">
+    <h2>{{ application().ownerTeam }}</h2>
+  </mat-card-content>
+  <mat-card-subtitle class="category">{{ application().repoUrl }}</mat-card-subtitle>
+  <mat-divider></mat-divider>
+</mat-card>

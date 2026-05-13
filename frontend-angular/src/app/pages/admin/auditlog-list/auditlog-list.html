@@ -1,0 +1,97 @@
+<div class="filters-bar">
+  <app-searchbar (messageEvent)="handleMessage($event)" />
+
+  <div class="filter-controls">
+    <mat-form-field appearance="outline" class="filter-field">
+      <mat-label>Ação</mat-label>
+      <mat-select [(ngModel)]="actionFilterValue">
+        <mat-option value="">Todas</mat-option>
+        @for (opt of uniqueActions(); track opt) {
+          <mat-option [value]="opt">{{ opt }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="filter-field">
+      <mat-label>Entidade</mat-label>
+      <mat-select [(ngModel)]="entityFilterValue">
+        <mat-option value="">Todas</mat-option>
+        @for (opt of uniqueEntities(); track opt) {
+          <mat-option [value]="opt">{{ opt }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    @if (actionFilter() || entityFilter() || searchQuery()) {
+      <button class="clear-btn" (click)="clearFilters()" title="Limpar filtros">✕ Limpar</button>
+    }
+  </div>
+</div>
+
+<div class="auditlog-container">
+  <mat-card>
+    <mat-card-header>
+      <mat-card-title>Logs de Auditoria</mat-card-title>
+      <mat-card-subtitle>
+        Rastreamento de ações do sistema ({{ filteredAuditLogCount() }} registro(s))
+      </mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+        <table mat-table [dataSource]="paginatedAuditLogs()" class="mat-elevation-z2 full-width">
+        <ng-container matColumnDef="id">
+          <th mat-header-cell *matHeaderCellDef>ID</th>
+          <td mat-cell *matCellDef="let item">{{ item.id }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="actor">
+          <th mat-header-cell *matHeaderCellDef>Ator</th>
+          <td mat-cell *matCellDef="let item">{{ item.actor }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="action">
+          <th mat-header-cell *matHeaderCellDef>Ação</th>
+          <td mat-cell *matCellDef="let item">{{ item.action }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="entity">
+          <th mat-header-cell *matHeaderCellDef>Entidade</th>
+          <td mat-cell *matCellDef="let item">{{ item.entity }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="entityId">
+          <th mat-header-cell *matHeaderCellDef>ID Entidade</th>
+          <td mat-cell *matCellDef="let item">{{ item.entityId || '-' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="payload">
+          <th mat-header-cell *matHeaderCellDef>Payload</th>
+          <td mat-cell *matCellDef="let item">{{ item.payload || '-' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="timestamp">
+          <th mat-header-cell *matHeaderCellDef>Data/Hora</th>
+          <td mat-cell *matCellDef="let item">{{ item.timestamp || '-' }}</td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+      </table>
+
+      @if (filteredAuditLogCount() > 0) {
+        <mat-paginator
+          [length]="filteredAuditLogCount()"
+          [pageIndex]="pageIndex()"
+          [pageSize]="pageSize()"
+          [pageSizeOptions]="pageSizeOptions"
+          (page)="handlePageChange($event)"
+          aria-label="Paginação de logs de auditoria"
+        ></mat-paginator>
+      }
+
+      @if (filteredAuditLogCount() === 0) {
+        <div class="empty-state">Nenhum log de auditoria encontrado</div>
+      }
+    </mat-card-content>
+  </mat-card>
+</div>

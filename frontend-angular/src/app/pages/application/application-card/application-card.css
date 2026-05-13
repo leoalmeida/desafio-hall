@@ -1,0 +1,90 @@
+.statusbar {
+  width: 100%;
+  text-align: center;
+  margin-bottom: 12px;
+  color: rgb(255, 255, 255);
+  border-radius: var(
+    --mat-button-toggle-shape,
+    var(--mat-sys-corner-extra-large)
+  );
+}
+
+.statusnew {
+  background-color: rgb(251, 248, 151);
+}
+
+.statusativo {
+  background-color: rgb(24, 28, 230);
+}
+
+.statuscancelado {
+  background-color: rgb(111, 53, 53);
+}
+
+.category {
+  margin: 0.3rem 0;
+  width: 100%;
+  font-size: 0.8rem;
+  text-align: right;
+  font-weight: bold;
+}
+
+.actionbar {
+  display: flex;
+  color: #888;
+  flex-direction: row;
+  justify-content: right;
+}
+
+.badge-status {
+  position: absolute;
+  right: 30px;
+}
+
+.badge-status.mat-badge-accent {
+  position: absolute;
+  right: 55px;
+}
+
+.badge-status.mat-badge-primary .mat-badge-content {
+  background-color: blue;
+}
+
+.badge-status.mat-badge-accent .mat-badge-content {
+  padding: -5px 0;
+  background-color: red;
+}
+
+.toggleGroup {
+  width: 100%;
+}
+.toggleButton {
+  width: 50%;
+}
+
+.dialog-message {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #000;
+  text-align: center;
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+
+@media (max-width: 768px) {
+  .card {
+    padding: 0.8rem;
+  }
+
+  .title {
+    font-size: 1rem;
+  }
+
+  .description {
+    font-size: 0.8rem;
+  }
+
+  .category {
+    font-size: 0.9rem;
+  }
+}

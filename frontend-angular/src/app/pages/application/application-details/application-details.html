@@ -1,0 +1,56 @@
+<h2 mat-dialog-title>
+  {{ openType === "edit" ? "Alterar Aplicação" : "Criar Aplicação" }}
+</h2>
+<mat-dialog-content>
+  <form [formGroup]="formApplication">
+    <mat-form-field class="full-width">
+      <mat-label>Nome</mat-label>
+      <input
+        matInput
+        placeholder="Nome da Aplicação"
+        formControlName="name"
+        required
+      />
+      @if (formApplication.get("name")?.hasError("required")) {
+        <mat-error>Nome é obrigatório</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>Time Responsável</mat-label>
+      <input
+        matInput
+        placeholder="Ex: squad-plataforma"
+        formControlName="ownerTeam"
+        required
+      />
+      @if (formApplication.get("ownerTeam")?.hasError("required")) {
+        <mat-error>Time responsável é obrigatório</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>URL do Repositório</mat-label>
+      <input
+        matInput
+        placeholder="https://github.com/org/repo"
+        formControlName="repoUrl"
+        required
+      />
+      @if (formApplication.get("repoUrl")?.hasError("required")) {
+        <mat-error>URL do repositório é obrigatória</mat-error>
+      }
+    </mat-form-field>
+  </form>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button matButton (click)="onCancel()">Cancelar</button>
+  <button
+    matButton="filled"
+    color="primary"
+    (click)="onSubmit()"
+    [disabled]="!formApplication.valid"
+  >
+    Salvar
+  </button>
+</mat-dialog-actions>

@@ -1,0 +1,86 @@
+<div class="filters-bar">
+  <app-searchbar (messageEvent)="handleMessage($event)" />
+
+  <div class="filter-controls">
+    <mat-form-field appearance="outline" class="filter-field">
+      <mat-label>Resultado</mat-label>
+      <mat-select [(ngModel)]="outcomeFilterValue">
+        <mat-option value="">Todos</mat-option>
+        @for (opt of outcomeOptions; track opt) {
+          <mat-option [value]="opt">{{ opt }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    @if (outcomeFilter() || searchQuery()) {
+      <button class="clear-btn" (click)="clearFilters()" title="Limpar filtros">✕ Limpar</button>
+    }
+  </div>
+</div>
+
+<div class="approval-container">
+  <mat-card>
+    <mat-card-header>
+      <mat-card-title>Aprovações</mat-card-title>
+      <mat-card-subtitle>
+        Listagem de registros de aprovação ({{ filteredApprovalCount() }} registro(s))
+      </mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+        <table mat-table [dataSource]="paginatedApprovals()" class="mat-elevation-z2 full-width">
+        <ng-container matColumnDef="id">
+          <th mat-header-cell *matHeaderCellDef>ID</th>
+          <td mat-cell *matCellDef="let item">{{ item.id }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="releaseId">
+          <th mat-header-cell *matHeaderCellDef>Release</th>
+          <td mat-cell *matCellDef="let item">{{ item.releaseId }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="approverEmail">
+          <th mat-header-cell *matHeaderCellDef>Aprovador</th>
+          <td mat-cell *matCellDef="let item">{{ item.approverEmail }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="outcome">
+          <th mat-header-cell *matHeaderCellDef>Resultado</th>
+          <td mat-cell *matCellDef="let item">
+            <span [class]="'outcome-badge outcome-' + item.outcome?.toLowerCase()">
+              {{ item.outcome }}
+            </span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="notes">
+          <th mat-header-cell *matHeaderCellDef>Notas</th>
+          <td mat-cell *matCellDef="let item">{{ item.notes || '-' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="timestamp">
+          <th mat-header-cell *matHeaderCellDef>Data/Hora</th>
+          <td mat-cell *matCellDef="let item">{{ item.timestamp || '-' }}</td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+      </table>
+
+      @if (filteredApprovalCount() > 0) {
+        <mat-paginator
+          [length]="filteredApprovalCount()"
+          [pageIndex]="pageIndex()"
+          [pageSize]="pageSize()"
+          [pageSizeOptions]="pageSizeOptions"
+          (page)="handlePageChange($event)"
+          aria-label="Paginação de aprovações"
+        ></mat-paginator>
+      }
+
+      @if (filteredApprovalCount() === 0) {
+        <div class="empty-state">Nenhuma aprovação encontrada</div>
+      }
+    </mat-card-content>
+  </mat-card>
+</div>

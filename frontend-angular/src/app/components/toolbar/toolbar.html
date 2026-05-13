@@ -1,0 +1,57 @@
+<mat-toolbar class="shadow" color="primary">
+  <div fxShow="true" fxHide.gt-sm="true">
+    <button matIconButton [disabled]="!isLoggedIn()" (click)="sidenav.toggle()">
+      <mat-icon>menu</mat-icon>
+    </button>
+  </div>
+  <img
+    alt="UserImg"
+    class="brand-logo"
+    src="./assets/logo.png"
+    alt="logo"
+    aria-hidden="true"
+    title="FrontApp"
+  />
+  <p class="head-title">{{ title() }}</p>
+  <span class="fill-remaining-space"></span>
+  @if (isLoggedIn()) {
+    <div class="toolbar-actions" fxShow="true" fxHide.lt-md="true">
+      <ul class="nav-links">
+        <a matButton="tonal" (click)="onCreateApplication()">Criar Aplicação</a>
+      </ul>
+    </div>
+    <section class="user-info">
+      <span class="logged-user">
+          {{ loggedUser().role }}
+      </span>
+      <button matButton="filled" disabled>
+        <span class="logged-user">
+          {{ loggedUser().name }}
+        </span>
+        <span class="avatar-user">
+          <img
+            src="https://material.angular.dev/assets/img/examples/shiba2.jpg"
+            alt="{{ loggedUser().name }}"
+            class="img-avatar-user"
+          />
+        </span>
+      </button>
+    </section>
+  }
+</mat-toolbar>
+<mat-sidenav #sidenav mode="over" [(opened)]="opened">
+  @if (isLoggedIn()) {
+    <div>
+      @for (route of routes; track $index) {
+        <button
+          matButton
+          [class.is-selected]="route.descricao == title()"
+          [routerLink]="route.path"
+          selected
+        >
+          {{ route.descricao }}
+        </button>
+      }
+    </div>
+  }
+</mat-sidenav>
