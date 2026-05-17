@@ -5,6 +5,7 @@ import com.example.backend.domain.entity.OutcomeEnum;
 import com.example.backend.domain.entity.StatusEnum;
 import com.example.backend.dto.ReleaseRequestDto;
 import com.example.backend.dto.ReleaseResponseDto;
+import com.example.backend.dto.EvidenceScoreResponseDto;
 import com.example.backend.exception.BusinessException;
 
 import jakarta.persistence.EntityNotFoundException;
@@ -89,4 +90,12 @@ public interface ReleaseService {
      * @param id ID da release
      */
     void promoteRelease(@NonNull Long id) throws EntityNotFoundException, BusinessException;
+
+        /**
+         * Calcula score determinístico (0..100) de evidência para uma release.
+         *
+         * @param id ID da release
+         * @return Resultado do score de evidência
+         */
+        EvidenceScoreResponseDto calculateEvidenceScore(@NonNull Long id) throws EntityNotFoundException;
 }

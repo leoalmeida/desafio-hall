@@ -6,6 +6,7 @@ import java.util.Objects;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -62,6 +63,7 @@ public class ApplicationResource {
                         @ApiResponse(responseCode = "500", description = "Erro interno do servidor")
         })
         @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
+        @PreAuthorize("hasAnyRole('ADMIN','APPROVER','VIEWER')")
         public ResponseEntity<List<ApplicationResponseDto>> findAllApplications() {
                 auditLogManager.logAction(SecurityContextUtils.getCurrentUserEmail(), "FIND", "Application", null,
                                 null);
@@ -84,15 +86,15 @@ public class ApplicationResource {
                         @ApiResponse(responseCode = "500", description = "Erro interno do servidor")
         })
         @PostMapping(path = "", produces = MediaType.APPLICATION_JSON_VALUE)
+        @PreAuthorize("hasRole('ADMIN')")
         public ResponseEntity<ApplicationResponseDto> createApplication(
                         @Parameter(description = "Dados da aplicação a ser criada", required = true)
                         @RequestBody final ApplicationRequestDto applicationDto) {
 
                 auditLogManager.logAction(SecurityContextUtils.getCurrentUserEmail(), "CREATE", "Application", null,
-                                applicationDto.toString());
+                                auditLogManager.toJsonNode(applicationDto));
                 ApplicationResponseDto savedApplication = applicationService.create(applicationDto);
                 return ResponseEntity.status(HttpStatus.CREATED)
-                                .contentType(MediaType.APPLICATION_JSON)
                                 .body(savedApplication);
         }
 
@@ -110,6 +112,7 @@ public class ApplicationResource {
                         @ApiResponse(responseCode = "500", description = "Erro interno do servidor")
         })
         @PutMapping(path = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+        @PreAuthorize("hasRole('ADMIN')")
         public ResponseEntity<ApplicationResponseDto> putApplication(
                         @Parameter(description = "ID único da aplicação a atualizar", required = true, example = "1")
                         @PathVariable final Long id,
@@ -117,11 +120,10 @@ public class ApplicationResource {
                         @RequestBody final ApplicationRequestDto application) {
 
                 auditLogManager.logAction(SecurityContextUtils.getCurrentUserEmail(), "PUT", "Application",
-                                id.intValue(), application.toString());
+                                id.intValue(), auditLogManager.toJsonNode(application));
                 ApplicationResponseDto updApplication = applicationService.update(id, application, true);
                 log.info("Aplicação atualizada: {}", updApplication);
                 return ResponseEntity.status(HttpStatus.OK)
-                                .contentType(MediaType.APPLICATION_JSON)
                                 .body(updApplication);
         }
 
@@ -139,17 +141,17 @@ public class ApplicationResource {
                         @ApiResponse(responseCode = "500", description = "Erro interno do servidor")
         })
         @PatchMapping(path = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+        @PreAuthorize("hasRole('ADMIN')")
         public ResponseEntity<ApplicationResponseDto> patchApplication(
                         @Parameter(description = "ID único da aplicação a atualizar", required = true, example = "1")
                         @PathVariable final Long id,
                         @Parameter(description = "Novos dados da aplicação", required = true)
                         @RequestBody final ApplicationRequestDto application) {
                 auditLogManager.logAction(SecurityContextUtils.getCurrentUserEmail(), "PATCH", "Application",
-                                id.intValue(), application.toString());
+                                id.intValue(), auditLogManager.toJsonNode(application));
                 ApplicationResponseDto updApplication = applicationService.update(id, application, false);
                 log.info("Aplicação atualizada: {}", updApplication);
                 return ResponseEntity.status(HttpStatus.OK)
-                                .contentType(MediaType.APPLICATION_JSON)
                                 .body(updApplication);
         }
 

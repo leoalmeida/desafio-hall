@@ -23,6 +23,7 @@ import com.example.backend.domain.entity.OutcomeEnum;
 import com.example.backend.domain.entity.StatusEnum;
 import com.example.backend.dto.ReleaseRequestDto;
 import com.example.backend.dto.ReleaseResponseDto;
+import com.example.backend.dto.EvidenceScoreResponseDto;
 import com.example.backend.security.AuditLogManager;
 import com.example.backend.security.SecurityContextUtils;
 import com.example.backend.service.ReleaseService;
@@ -63,7 +64,7 @@ public class ReleaseResource {
         @ApiResponse(responseCode = "500", description = "Erro interno do servidor")
     })
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    @PreAuthorize("hasAnyRole('USER','ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','APPROVER','VIEWER')")
     public ResponseEntity<List<ReleaseResponseDto>> find(
             @Parameter(description = "ID da aplicação", required = true) @RequestParam final Long applicationId,
             @Parameter(description = "Versão da release", required = true) @RequestParam final String version,
@@ -71,7 +72,7 @@ public class ReleaseResource {
                     final EnvironmentEnum environment,
             @Parameter(description = "Status da release", required = true) @RequestParam final StatusEnum status) {
         auditLogManager.logAction(SecurityContextUtils.getCurrentUserEmail(), "FIND", "Release", null,
-                String.format("applicationId=%d, version=%s, environment=%s, status=%s",
+                String.format("{applicationId:%d, version:%s, environment:%s, status:%s}",
                         applicationId, version, environment, status));
         List<ReleaseResponseDto> result = releaseService.find(applicationId, version, environment, status);
         return ResponseEntity.ok(result);
@@ -87,7 +88,7 @@ public class ReleaseResource {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ReleaseResponseDto> create(@RequestBody final ReleaseRequestDto dto) {
         auditLogManager.logAction(SecurityContextUtils.getCurrentUserEmail(), "CREATE", "Release", null,
-                dto.toString());
+                auditLogManager.toJsonNode(dto));
         ReleaseResponseDto result = releaseService.create(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(result);
     }
@@ -99,11 +100,11 @@ public class ReleaseResource {
         @ApiResponse(responseCode = "500", description = "Erro interno do servidor")
     })
     @PostMapping(value = "/{id}/approve")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','APPROVER')")
     public ResponseEntity<Void> approve(
             @Parameter(description = "ID da release", required = true) @PathVariable final Long id) {
         auditLogManager.logAction(SecurityContextUtils.getCurrentUserEmail(), "APPROVE", "Release", id.intValue(),
-            null);
+            auditLogManager.toJsonNode("releaseId",id.toString()));
         releaseService.approveRelease(id, OutcomeEnum.APPROVED);
         return ResponseEntity.noContent().build();
     }
@@ -115,11 +116,11 @@ public class ReleaseResource {
         @ApiResponse(responseCode = "500", description = "Erro interno do servidor")
     })
     @PostMapping(value = "/{id}/disapprove")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','APPROVER')")
     public ResponseEntity<Void> disapprove(
             @Parameter(description = "ID da release", required = true) @PathVariable final Long id) {
         auditLogManager.logAction(SecurityContextUtils.getCurrentUserEmail(), "DISAPPROVE", "Release",
-            id.intValue(), null);
+            id.intValue(), auditLogManager.toJsonNode("ReleaseID", id.toString()));
         releaseService.approveRelease(id, OutcomeEnum.REJECTED);
         return ResponseEntity.noContent().build();
     }
@@ -135,9 +136,26 @@ public class ReleaseResource {
     public ResponseEntity<Void> promote(
             @Parameter(description = "ID da release", required = true) @PathVariable final Long id) {
         auditLogManager.logAction(SecurityContextUtils.getCurrentUserEmail(), "PROMOTE", "Release", id.intValue(),
-                null);
+                auditLogManager.toJsonNode("ReleaseId",id.toString()));
         releaseService.promoteRelease(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "Calcular score de evidência da release")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Score calculado com sucesso"),
+        @ApiResponse(responseCode = "404", description = "Release não encontrada"),
+        @ApiResponse(responseCode = "500", description = "Erro interno do servidor")
+    })
+    @GetMapping(value = "/{id}/evidence-score", produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasAnyRole('ADMIN','APPROVER','VIEWER')")
+    public ResponseEntity<EvidenceScoreResponseDto> evidenceScore(
+            @Parameter(description = "ID da release", required = true) @PathVariable final Long id) {
+        auditLogManager.logAction(
+            SecurityContextUtils.getCurrentUserEmail(), "EVIDENCE_SCORE", "Release", id.intValue(),
+                auditLogManager.toJsonNode("ReleaseId", id.toString()));
+        EvidenceScoreResponseDto result = releaseService.calculateEvidenceScore(id);
+        return ResponseEntity.ok(result);
     }
 
 }

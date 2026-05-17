@@ -1,0 +1,13 @@
+{
+  "server": {
+    "port": 3000
+  },
+  "backend": {
+    "baseUrl": "http://localhost:8081"
+  },
+  "security": {
+    "jwtSecret": "changeit-changeit-changeit-changeit",
+    "rateLimitWindowMs": 60000,
+    "rateLimitMax": 300
+  }
+}

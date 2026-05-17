@@ -2,10 +2,13 @@ package com.example.backend.domain.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import java.io.Serial;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -16,7 +19,13 @@ import lombok.NoArgsConstructor;
  * Entidade que representa uma release de aplicação.
  */
 @Entity
-@Table(name = "RELEASE")
+@Table(
+    name = "RELEASE",
+    uniqueConstraints = {
+        @UniqueConstraint(
+            name = "uk_release_application_version_env",
+            columnNames = {"application_id", "version", "env"})
+    })
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -40,9 +49,11 @@ public class Release {
     private String version;
 
     @Column(name = "env", nullable = false, length = MAX_VERSION_LENGTH)
+    @Enumerated(EnumType.STRING)
     private EnvironmentEnum env;
 
     @Column(name = "status", nullable = false, length = MAX_VERSION_LENGTH)
+    @Enumerated(EnumType.STRING)
     private StatusEnum status;
 
     @Column(name = "evidence_url", length = MAX_URL_LENGTH)

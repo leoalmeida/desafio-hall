@@ -53,7 +53,7 @@ public class ApprovalResource {
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor")
     })
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','APPROVER')")
     public ResponseEntity<List<ApprovalResponseDto>> findAll() {
         auditLogManager.logAction(SecurityContextUtils.getCurrentUserEmail(), "LIST_ALL_APPROVALS", "Approval", null,
                 null);
@@ -67,11 +67,12 @@ public class ApprovalResource {
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor")
     })
     @GetMapping(value = "/approver", produces = MediaType.APPLICATION_JSON_VALUE)
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','APPROVER')")
     public ResponseEntity<List<ApprovalResponseDto>> findByApprover(
             @Parameter(description = "Login do aprovador", required = true) @RequestParam final String aprovador) {
+        
         auditLogManager.logAction(SecurityContextUtils.getCurrentUserEmail(), "FIND_BY_APPROVER", "Approval", null,
-            aprovador);
+            auditLogManager.toJsonNode("aprovador", aprovador));
         List<ApprovalResponseDto> result = approvalService.findByApprover(aprovador);
         return ResponseEntity.ok(result);
     }
@@ -82,11 +83,11 @@ public class ApprovalResource {
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor")
     })
     @GetMapping(value = "/release", produces = MediaType.APPLICATION_JSON_VALUE)
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','APPROVER')")
     public ResponseEntity<List<ApprovalResponseDto>> buscarPorRelease(
             @Parameter(description = "ID da release", required = true) @RequestParam final Long releaseId) {
         auditLogManager.logAction(SecurityContextUtils.getCurrentUserEmail(), "FIND_BY_RELEASE_ID", "ApprovalResource",
-            releaseId.intValue(), null);
+            releaseId.intValue(), auditLogManager.toJsonNode("releaseId", releaseId.toString()));
         List<ApprovalResponseDto> result = approvalService.findByReleaseId(releaseId);
         return ResponseEntity.ok(result);
     }
@@ -97,11 +98,11 @@ public class ApprovalResource {
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor")
     })
     @GetMapping(value = "/outcome", produces = MediaType.APPLICATION_JSON_VALUE)
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','APPROVER')")
     public ResponseEntity<List<ApprovalResponseDto>> findByOutcome(
             @Parameter(description = "Nome do outcome", required = true) @RequestParam final String outcome) {
         auditLogManager.logAction(SecurityContextUtils.getCurrentUserEmail(), "FIND_BY_OUTCOME", "Approval", null,
-                outcome);
+                auditLogManager.toJsonNode("outcome", outcome));
         List<ApprovalResponseDto> result = approvalService.findByOutcome(OutcomeEnum.valueOf(outcome.toUpperCase()));
         return ResponseEntity.ok(result);
     }

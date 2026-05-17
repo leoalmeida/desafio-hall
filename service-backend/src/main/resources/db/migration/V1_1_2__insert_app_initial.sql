@@ -1,6 +1,7 @@
-INSERT INTO APP_USERs (email, name, profile, password, status, reset_token) VALUES
-    ('user@email.com', 'Usuario user', 'USER', '$2a$10$KbdhjX3F4l8/ibWNr0TFzus1ROvxUc8iHYsybJIaAEJOIflETefXy', 'ativo', NULL),
-    ('admin@email.com', 'João Admin', 'ADMIN', '$2a$10$KbdhjX3F4l8/ibWNr0TFzus1ROvxUc8iHYsybJIaAEJOIflETefXy', 'ativo', NULL),
+INSERT INTO APP_USER (email, name, role, pawd, status, reset_token) VALUES
+    ('viewer@email.com', 'Usuario Viewer', 'VIEWER', '$2a$10$KbdhjX3F4l8/ibWNr0TFzus1ROvxUc8iHYsybJIaAEJOIflETefXy', 'ativo', NULL),
+    ('approver@email.com', 'Usuario Approver', 'APPROVER', '$2a$10$KbdhjX3F4l8/ibWNr0TFzus1ROvxUc8iHYsybJIaAEJOIflETefXy', 'ativo', NULL),
+    ('admin@email.com', 'Usuario Admin', 'ADMIN', '$2a$10$KbdhjX3F4l8/ibWNr0TFzus1ROvxUc8iHYsybJIaAEJOIflETefXy', 'ativo', NULL)
 ON CONFLICT (email) DO NOTHING;
 
 INSERT INTO APPLICATION (

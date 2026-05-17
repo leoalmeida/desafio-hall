@@ -5,6 +5,7 @@ import java.util.Objects;
 
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -45,6 +46,7 @@ public class UserResource {
     @GetMapping(
             value = "/",
             produces = MediaType.APPLICATION_JSON_VALUE)
+        @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<UserResponseDto>> getAllUsers() {
         auditLogManager.logAction(SecurityContextUtils.getCurrentUserEmail(), "LIST_ALL_USERS", "USER", null, null);
         List<UserResponseDto> response = service.findAll();
@@ -55,10 +57,11 @@ public class UserResource {
             value = "/",
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
+        @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<UserResponseDto> createUser(@Valid @RequestBody final UserRequestDto request) {
         auditLogManager.logAction(
             SecurityContextUtils.getCurrentUserEmail(),
-            "CREATE_USER", "USER", null, request.toString());
+            "CREATE_USER", "USER", null, auditLogManager.toJsonNode(request));
         UserResponseDto response = service.create(request);
         return ResponseEntity.ok(response);
     }
@@ -67,6 +70,7 @@ public class UserResource {
             value = "/{userMail}",
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
+        @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<UserResponseDto> updateUser(
             @Parameter(
                 description = "Email do usuário a ser atualizado",
@@ -75,7 +79,7 @@ public class UserResource {
             @Valid @RequestBody final UserRequestDto request) {
         auditLogManager.logAction(
             SecurityContextUtils.getCurrentUserEmail(),
-            "UPDATE_USER", "USER", null, request.toString());
+            "UPDATE_USER", "USER", null, auditLogManager.toJsonNode(request));
         UserResponseDto response = service.update(request);
         return ResponseEntity.ok(response);
     }
@@ -83,6 +87,7 @@ public class UserResource {
     @DeleteMapping(
             value = "/{userMail}",
             consumes = MediaType.APPLICATION_JSON_VALUE)
+        @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteUser(
             @Parameter(
                 description = "Email do usuário removido",
@@ -90,7 +95,7 @@ public class UserResource {
             @PathVariable final String userMail) {
         auditLogManager.logAction(
             SecurityContextUtils.getCurrentUserEmail(),
-            "DELETE_USER", "USER", null, null);
+            "DELETE_USER", "USER", null, auditLogManager.toJsonNode("Username", userMail));
         service.delete(userMail);
         return ResponseEntity.noContent().build();
     }

@@ -2,6 +2,7 @@ package com.example.backend.rest;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -28,6 +29,8 @@ import com.example.backend.domain.entity.OutcomeEnum;
 import com.example.backend.domain.entity.StatusEnum;
 import com.example.backend.dto.ReleaseRequestDto;
 import com.example.backend.dto.ReleaseResponseDto;
+import com.example.backend.dto.EvidenceScoreResponseDto;
+import com.example.backend.exception.BusinessException;
 import com.example.backend.security.AuditLogManager;
 import com.example.backend.security.JwtAuthenticationFilter;
 import com.example.backend.security.JwtService;
@@ -65,7 +68,7 @@ class ReleaseResourceWebMvcTest {
     private void mockUserToken() {
         when(jwtService.isTokenValid(VALID_TOKEN)).thenReturn(true);
         when(jwtService.extractEmail(VALID_TOKEN)).thenReturn("user@test.com");
-        when(jwtService.extractRole(VALID_TOKEN)).thenReturn("USER");
+                when(jwtService.extractRole(VALID_TOKEN)).thenReturn("VIEWER");
     }
 
     // --- GET /api/releases ---
@@ -237,5 +240,42 @@ class ReleaseResourceWebMvcTest {
         mockMvc.perform(post("/api/releases/1/promote")
                         .header(HttpHeaders.AUTHORIZATION, AUTH_HEADER))
                 .andExpect(status().isForbidden());
+    }
+
+        @Test
+        void promoteDeveRetornar422QuandoPolicyBloquearPromocao() throws Exception {
+                mockAdminToken();
+                doThrow(new BusinessException("Janela de freeze ativa para ambiente PROD"))
+                                .when(releaseService)
+                                .promoteRelease(1L);
+
+                mockMvc.perform(post("/api/releases/1/promote")
+                                                .header(HttpHeaders.AUTHORIZATION, AUTH_HEADER))
+                                .andExpect(status().isUnprocessableEntity())
+                                .andExpect(jsonPath("$.code").value("BUSINESS_ERROR"));
+    }
+
+    @Test
+    void evidenceScoreDeveRetornar200ComTokenViewer() throws Exception {
+        mockUserToken();
+        EvidenceScoreResponseDto response = EvidenceScoreResponseDto.builder()
+                .releaseId(1L)
+                .score(88)
+                .evidenceUrl("https://ci.example.com/reports/rel-1?result=PASS")
+                .rationale("validUrl=true")
+                .build();
+        when(releaseService.calculateEvidenceScore(1L)).thenReturn(response);
+
+        mockMvc.perform(get("/api/releases/1/evidence-score")
+                        .header(HttpHeaders.AUTHORIZATION, AUTH_HEADER))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.releaseId").value(1))
+                .andExpect(jsonPath("$.score").value(88));
+    }
+
+    @Test
+    void evidenceScoreDeveRetornar401SemToken() throws Exception {
+        mockMvc.perform(get("/api/releases/1/evidence-score"))
+                .andExpect(status().isUnauthorized());
     }
 }

@@ -7,6 +7,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -14,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
+import org.springframework.dao.DataIntegrityViolationException;
 
 import com.example.backend.domain.entity.EnvironmentEnum;
 import com.example.backend.domain.entity.Release;
@@ -204,5 +206,19 @@ class ReleaseRepositoryTest {
         List<Release> found = repository.findRelease(1L, "1.0.0", EnvironmentEnum.PREPROD, StatusEnum.APPROVED_PREPROD);
 
         assertEquals(1, found.size());
+    }
+
+    @Test
+    void testNaoPermiteDuplicidadePorApplicationVersionEnv() {
+        Release duplicated = Release.builder()
+                .applicationId(release1.getApplicationId())
+                .version(release1.getVersion())
+                .env(release1.getEnv())
+                .status(StatusEnum.CREATED)
+                .versionRow(99)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        assertThrows(DataIntegrityViolationException.class, () -> repository.saveAndFlush(duplicated));
     }
 }

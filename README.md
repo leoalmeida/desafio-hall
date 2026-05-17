@@ -2,7 +2,27 @@
 
 [Português](README.md) | [English](README.en.md)
 
-Aplicacao fullstack com frontend Angular, API Gateway Node.js e backend Spring Boot para gestao de aplicacoes, releases, aprovacoes e auditoria.
+## Contexto
+
+A Aurora GeoEnergy centraliza releases em DEV → PRE‐PROD → PROD. Evidências e aprovações estão dispersas e houve falha por falta de evidência e aprovação formal. A diretoria quer um sistema único, auditável, com regras claras e políticas configuráveis.
+
+Para essa implementação será utilizadada uma aplicacao fullstack com frontend Angular, API Gateway Node.js e backend Spring Boot para gestao de aplicacoes, releases, aprovacoes e auditoria.
+
+## Arquitetura
+
+* Frontend Angular SPA
+* API Gateway Node.js como única entrada do frontend e implementando responsabilidades transversais (auth/roles,
+validação, observabilidade e padronização de erros).
+* Backend Service utilizando Java e Spring Boot
+* Banco PostgreSQL
+
+## Requisitos base
+
+* Autenticação por token, com roles: admin / approver / viewer.
+* Erros padronizados em JSON: { code, message, details }.
+* Logs estruturados com requestId/correlationId (propagar do Gateway para o backend).
+* Métricas simples (contadores por rota e/ou tempo de request).
+* Swagger/OpenAPI no Gateway (obrigatório) e no backend (recomendado).
 
 ## Resumo Executivo
 
@@ -86,6 +106,8 @@ Recursos de observabilidade e documentacao:
 
 - Swagger UI: `http://localhost:8081/swagger-ui.html`
 - OpenAPI JSON: `http://localhost:8081/api-docs`
+- Gateway Swagger UI: `http://localhost:3000/swagger-ui`
+- Gateway OpenAPI JSON: `http://localhost:3000/api-docs-json`
 - Actuator: `http://localhost:8081/actuator`
 
 ### frontend-angular
@@ -117,7 +139,7 @@ Responsabilidades principais:
 
 - encaminhar chamadas do frontend para o `service-backend`
 - validar token Bearer nas rotas protegidas
-- aplicar autorizacao por roles (`admin`, `approver`, `viewer`)
+- aplicar autorizacao por roles (`admin`, `approver`, `viewer`) de acordo com as regras da API
 - validar payload e `content-type` nas entradas HTTP
 - manter rotas publicas de autenticacao
 - padronizar tratamento de erros com contrato `{ code, message, details }`
@@ -129,6 +151,20 @@ Configuracao principal em `gateway-node/config/default.json` e variaveis de ambi
 - `PORT` ou `server.port` para a porta do gateway
 - `BACKEND_BASE_URL` para o endereco interno/externo do backend
 - `JWT_SECRET` para validar o mesmo token emitido pelo backend
+
+### policy-as-code
+
+O backend carrega a policy JSON em runtime com a seguinte ordem de precedencia:
+
+1. caminho definido em `POLICY_FILE_PATH`
+2. arquivo `../policy.json` (raiz do repositorio em execucao local)
+3. arquivo `policy.json` no classpath (`service-backend/src/main/resources/policy.json`)
+
+Campos aplicados pela policy:
+
+- `minApprovals`: minimo de aprovacoes com outcome `APPROVED` para permitir aprovacao de release
+- `minScore`: score minimo para aprovacao, calculado como percentual de aprovacoes `APPROVED` sobre total de aprovacoes da release
+- `freezeWindows`: bloqueio de aprovacao/promocao por ambiente e janela de horario
 
 Diagramas C4 atualizados da arquitetura:
 
@@ -190,6 +226,8 @@ Recursos do service-backend:
 
 - Swagger UI: `http://localhost:8081/swagger-ui.html`
 - OpenAPI JSON: `http://localhost:8081/api-docs`
+- Gateway Swagger UI: `http://localhost:3000/swagger-ui`
+- Gateway OpenAPI JSON: `http://localhost:3000/api-docs-json`
 
 ### Resultado esperado
 
@@ -207,6 +245,8 @@ O gateway encaminha as chamadas para o `service-backend` em `http://localhost:80
 - `POST /auth/login`
 - `GET /healthcheck/`
 - `GET /metrics`
+- `GET /api-docs-json`
+- `GET /swagger-ui`
 - `GET /applications`
 - `POST /applications`
 - `PUT /applications/{id}`
@@ -216,6 +256,7 @@ O gateway encaminha as chamadas para o `service-backend` em `http://localhost:80
 - `POST /releases/{id}/approve`
 - `POST /releases/{id}/disapprove`
 - `POST /releases/{id}/promote`
+- `GET /releases/{id}/evidence-score`
 - `GET /approvals`
 - `GET /approvals/approver?aprovador=...`
 - `GET /approvals/release?releaseId=...`
@@ -235,6 +276,30 @@ Exemplo de login:
     "password": "senha123"
 }
 ```
+
+## Matriz de Acesso (Roles x Endpoints)
+
+Permissões efetivas considerando Gateway + Backend:
+
+| Endpoint | Metodo | admin | approver | viewer |
+| --- | --- | --- | --- | --- |
+| `/api/auth/login` | `POST` | Sim (publico) | Sim (publico) | Sim (publico) |
+| `/healthcheck` | `GET` | Sim (publico) | Sim (publico) | Sim (publico) |
+| `/metrics` | `GET` | Sim (publico) | Sim (publico) | Sim (publico) |
+| `/api-docs-json` | `GET` | Sim (publico) | Sim (publico) | Sim (publico) |
+| `/swagger-ui` | `GET` | Sim (publico) | Sim (publico) | Sim (publico) |
+| `/api/applications` | `GET` | Sim | Sim | Sim |
+| `/api/applications` | `POST` | Sim | Nao | Nao |
+| `/api/applications/{id}` | `PUT/PATCH` | Sim | Nao | Nao |
+| `/api/releases` | `GET` | Sim | Sim | Sim |
+| `/api/releases` | `POST` | Sim | Nao | Nao |
+| `/api/releases/{id}/approve` | `POST` | Sim | Sim | Nao |
+| `/api/releases/{id}/disapprove` | `POST` | Sim | Sim | Nao |
+| `/api/releases/{id}/promote` | `POST` | Sim | Nao | Nao |
+| `/api/releases/{id}/evidence-score` | `GET` | Sim | Sim | Sim |
+| `/api/approvals` e filtros | `GET` | Sim | Sim | Nao |
+| `/api/audit` e filtros | `GET/POST` | Sim | Nao | Nao |
+| `/api/users` | `GET/POST/PUT/DELETE` | Sim | Nao | Nao |
 
 ## Docker
 
@@ -293,6 +358,49 @@ cd gateway-node
 npm run lint
 npm test
 ```
+
+### Testes de policy-as-code
+
+Cobertura das regras principais:
+
+- `minApprovals` (bloqueio quando aprovações válidas são menores que o mínimo)
+- `minScore` (bloqueio quando score percentual está abaixo do mínimo)
+- `freezeWindows` por ambiente (bloqueio em janela ativa)
+- aplicação da policy no fluxo de `approveRelease` e `promoteRelease`
+
+Classes de teste:
+
+- `service-backend/src/test/java/com/example/backend/policy/PolicyServiceTest.java`
+- `service-backend/src/test/java/com/example/backend/service/ReleaseServiceImplTest.java`
+
+Execução focada:
+
+```bash
+cd service-backend
+mvn -Dtest=PolicyServiceTest,ReleaseServiceImplTest test
+```
+
+## Evidence Scoring
+
+Endpoint de score determinístico de evidência:
+
+- `GET /api/releases/{id}/evidence-score`
+
+Regras de pontuação (0..100):
+
+- URL de evidência válida (`http/https` com host): `+40`
+- URL contém padrão de relatório (`report`, `evidence`, `quality`, `test`, `coverage`): `+20`
+- URL contém indicador de sucesso (`PASS`, `passed`, `result=pass`, `status=pass`): `+20`
+- Peso por status da release:
+- `DEPLOYED`, `APPROVED_PROD`, `APPROVED_PREPROD`: `+10`
+- `PENDING_PROD`, `PENDING_PREPROD`: `+5`
+- demais status: `+0`
+- Peso por ambiente:
+- `PROD`: `+10`
+- `PREPROD`: `+7`
+- `DEV`: `+5`
+
+O score final é normalizado com limite entre `0` e `100`.
 
 ## Troubleshooting
 

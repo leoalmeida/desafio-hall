@@ -27,4 +27,5 @@ public class AuthRequestDto {
     @Schema(description = "Senha do usuário", example = "senha123")
     @Size(max = DtoConstants.MAX_TEXT_LENGTH, message = "Senha deve ter no máximo 255 caracteres")
     String pawd;
+    
 }

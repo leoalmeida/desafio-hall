@@ -1,6 +1,8 @@
 package com.example.backend.domain.repository;
 
 import com.example.backend.domain.entity.Release;
+import com.example.backend.domain.entity.EnvironmentEnum;
+import com.example.backend.domain.entity.StatusEnum;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -23,7 +25,7 @@ public interface ReleaseRepository extends JpaRepository<Release, Long> {
      */
     @Query("SELECT r FROM Release r WHERE r.applicationId = :applicationId "
             + "AND r.version = :version "
-            + "AND LOWER(r.env) = LOWER(:env) "
-            + "AND LOWER(r.status) = LOWER(:status)")
-    List<Release> findRelease(Long applicationId, String version, String env, String status);
+            + "AND r.env = :env "
+            + "AND r.status = :status")
+        List<Release> findRelease(Long applicationId, String version, EnvironmentEnum env, StatusEnum status);
 }

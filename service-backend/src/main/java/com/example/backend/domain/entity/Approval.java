@@ -2,6 +2,8 @@ package com.example.backend.domain.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -40,6 +42,7 @@ public class Approval {
     private String approverEmail;
 
     @Column(name = "outcome", nullable = false, length = MAX_OUTCOME_LENGTH)
+    @Enumerated(EnumType.STRING)
     private OutcomeEnum outcome;
 
     @Column(name = "notes", columnDefinition = "TEXT")

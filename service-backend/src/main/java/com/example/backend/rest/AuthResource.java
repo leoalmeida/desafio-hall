@@ -41,7 +41,13 @@ public class AuthResource {
             produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<AuthResponseDto> login(
         @Valid @RequestBody final AuthRequestDto request) {
-        auditLogManager.logAction(request.getEmail(), "LOGIN", "AppUser", null, request.toString());
+
+        this.auditLogManager.logAction(
+                request.getEmail(), 
+                "LOGIN",
+                "AppUser", 
+                0, 
+                auditLogManager.toJsonNode(request));
 
         AuthResponseDto response = service.loginUser(request);
 

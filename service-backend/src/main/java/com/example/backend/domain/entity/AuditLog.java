@@ -1,12 +1,14 @@
 package com.example.backend.domain.entity;
 
+import java.io.Serial;
+import java.time.LocalDateTime;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import java.io.Serial;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -44,9 +46,9 @@ public class AuditLog {
     @Column(name = "entity_id", nullable = false)
     private Integer entityId;
 
-    @Column(name = "payload", columnDefinition = "JSONB")
+    @Column(name = "payload", columnDefinition = "jsonb")
     private String payload;
 
     @Column(name = "timestamp", nullable = false, updatable = false)
-    private java.time.LocalDateTime timestamp;
+    private LocalDateTime timestamp;
 }

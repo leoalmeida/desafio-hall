@@ -1,56 +1,45 @@
 package com.example.backend.exception;
 
 import java.time.Instant;
+
 import lombok.NoArgsConstructor;
 
 /* Classe de modelo para representar erros de resposta. */
 @NoArgsConstructor
 public class ResponseError {
-    public static final String STATUS_ERROR = "error";
-    public static final String STATUS_SUCCESS = "success";
-    public static final int STATUS_CODE_SUCCESS = 200;
-    public static final int STATUS_CODE_ERROR = 400;
+    private final Instant timestamp = Instant.now();
+    private String code;
+    private String message;
+    private Object details;
 
-    private Instant timestamp = Instant.now();
-    private String status = STATUS_ERROR;
-    private int statusCode = STATUS_CODE_ERROR;
-    private String error;
-
-    public ResponseError setStatusCode(final int statusCode) {
-        this.statusCode = statusCode;
+    public ResponseError setCode(final String code) {
+        this.code = code;
         return this;
     }
 
-    public ResponseError setError(final String error) {
-        this.error = error;
+    public ResponseError setMessage(final String message) {
+        this.message = message;
         return this;
     }
 
-    /**
-     * @return the timestamp
-     */
-    String getTimestamp() {
+    public ResponseError setDetails(final Object details) {
+        this.details = details;
+        return this;
+    }
+
+    public String getTimestamp() {
         return timestamp.toString();
     }
 
-    /**
-     * @return the error
-     */
-    String getError() {
-        return error;
+    public String getCode() {
+        return code;
     }
 
-    /**
-     * @return the statusCode
-     */
-    int getStatusCode() {
-        return statusCode;
+    public String getMessage() {
+        return message;
     }
 
-    /**
-     * @return the status
-     */
-    String getStatus() {
-        return status;
+    public Object getDetails() {
+        return details;
     }
 }
