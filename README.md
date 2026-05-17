@@ -101,13 +101,22 @@ Configuracao padrao em `service-backend/src/main/resources/application.propertie
 - `spring.datasource.username=${DB_USERNAME:postgres}`
 - `spring.datasource.password=${DB_PASSWORD:postgres}`
 - `security.jwt.secret=${JWT_SECRET:changeit-changeit-changeit-changeit}`
+- `security.jwt.expiration-ms=${JWT_EXPIRATION_MS:3600000}`
+- `security.jwt.algorithm=${JWT_ALGORITHM:HS256}`
+- `policy.file.path=${POLICY_FILE_PATH:policy.json}`
+- `logging.level.root=${GLOBAL_LOG_LEVEL:INFO}`
+- `logging.level.com.example.backend=${BACKEND_LOG_LEVEL:INFO}`
 
 Migrations Flyway iniciais em `service-backend/src/main/resources/db/migration`:
 
 - `V1_1_0__create_application_table.sql`: cria `APPLICATION`
-- `V1_1_0_1__create_release_table.sql`: cria `RELEASE`
-- `V1_1_0_2__create_approval_table.sql`: cria `APPROVAL`
-- `V1_1_0_3__create_audit_log_table.sql`: cria `AUDITLOG`
+- `V1_1_1__create_release_table.sql`: cria `RELEASE`
+- `V1_1_2__create_approval_table.sql`: cria `APPROVAL`
+- `V1_1_3__create_audit_log_table.sql`: cria `AUDITLOG`
+- `V1_1_4__create_auth_table.sql`: cria `AUDITLOG`
+- `V1_1_5__add_release_unique_constraint.sql`: cria `AUDITLOG`
+- `V1_1_6__create_idempotency_record_table.sql`: cria `AUDITLOG`
+- `V1_1_7__insert_app_initial.sql`: inser `AUDITLOG`
 
 As entidades principais do backend (`APPLICATION`, `RELEASE`, `APPROVAL`, `AUDITLOG` e `IDEMPOTENCY_RECORD`) usam `UUID` como identificador primário. Filtros e path params como `applicationId`, `releaseId` e `{id}` seguem esse mesmo formato.
 
