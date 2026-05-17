@@ -79,6 +79,15 @@ OpenAPI endpoints:
 - Backend Swagger UI: `http://localhost:8081/swagger-ui.html`
 - Backend OpenAPI JSON: `http://localhost:8081/api-docs`
 
+Base Flyway migrations in `service-backend/src/main/resources/db/migration` are split by table:
+
+- `V1_1_0__create_application_table.sql`: creates `APPLICATION`
+- `V1_1_0_1__create_release_table.sql`: creates `RELEASE`
+- `V1_1_0_2__create_approval_table.sql`: creates `APPROVAL`
+- `V1_1_0_3__create_audit_log_table.sql`: creates `AUDITLOG`
+
+The main backend entities (`APPLICATION`, `RELEASE`, `APPROVAL`, `AUDITLOG`, and `IDEMPOTENCY_RECORD`) now use `UUID` primary keys. Public filters and path parameters such as `applicationId`, `releaseId`, and `{id}` follow the same format.
+
 Public API base URL:
 
 - `http://localhost:3000/api`
@@ -89,7 +98,14 @@ Gateway operational endpoints:
 - `GET /metrics`
 - `GET /api-docs-json`
 - `GET /swagger-ui`
+- `PATCH /api/releases/{id}/evidence-url`
 - `GET /api/releases/{id}/evidence-score`
+
+Promote endpoint notes:
+
+- supports `Idempotency-Key` header for replay deduplication
+- replay with the same completed key returns the same effect without duplicating audit
+- in-progress key or concurrent conflict returns `409`
 
 ## Policy-as-Code
 
@@ -124,10 +140,16 @@ Effective permissions considering Gateway + Backend:
 | `/api/releases/{id}/approve` | `POST` | Yes | Yes | No |
 | `/api/releases/{id}/disapprove` | `POST` | Yes | Yes | No |
 | `/api/releases/{id}/promote` | `POST` | Yes | No | No |
+| `/api/releases/{id}/evidence-url` | `PATCH` | Yes | No | No |
 | `/api/releases/{id}/evidence-score` | `GET` | Yes | Yes | Yes |
 | `/api/approvals` and filters | `GET` | Yes | Yes | No |
 | `/api/audit` and filters | `GET/POST` | Yes | No | No |
 | `/api/users` | `GET/POST/PUT/DELETE` | Yes | No | No |
+
+Audit notes:
+
+- audited release actions: `CREATE`, `APPROVE`, `DISAPPROVE`, `PROMOTE`, `CHANGE_EVIDENCE_URL`
+- `GET /api/audit` supports optional root query filters: `ator`, `acao`, `entidade`, `dataInicio`, `dataFim`
 
 ## Docker
 

@@ -1,0 +1,9 @@
+CREATE TABLE IF NOT EXISTS APPROVAL (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    release_id UUID NOT NULL,
+    approver_email VARCHAR(255) NOT NULL,
+    outcome VARCHAR(50) NOT NULL,
+    notes TEXT,
+    timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (release_id) REFERENCES RELEASE(id) ON DELETE CASCADE
+);

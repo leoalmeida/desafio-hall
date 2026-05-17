@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 
@@ -15,6 +16,9 @@ import com.example.backend.dto.ApprovalResponseDto;
 
 class ApprovalMapperTest {
 
+    private static final UUID APPROVAL_ID = UUID.fromString("20000000-0000-0000-0000-000000000001");
+    private static final UUID RELEASE_ID = UUID.fromString("10000000-0000-0000-0000-000000000001");
+
     @Test
     void mapRequestDeveRetornarNullQuandoDtoForNull() {
         assertNull(ApprovalMapper.mapRequest(null));
@@ -23,7 +27,7 @@ class ApprovalMapperTest {
     @Test
     void mapRequestDeveMapearCamposCorretamente() {
         ApprovalRequestDto dto = ApprovalRequestDto.builder()
-                .releaseId(10L)
+                .releaseId(RELEASE_ID)
                 .approverEmail("approver@email.com")
                 .outcome(OutcomeEnum.APPROVED)
                 .notes("aprovado")
@@ -32,7 +36,7 @@ class ApprovalMapperTest {
         Approval result = ApprovalMapper.mapRequest(dto);
 
         assertNotNull(result);
-        assertEquals(10L, result.getReleaseId());
+    assertEquals(RELEASE_ID, result.getReleaseId());
         assertEquals("approver@email.com", result.getApproverEmail());
         assertEquals(OutcomeEnum.APPROVED, result.getOutcome());
         assertEquals("aprovado", result.getNotes());
@@ -46,8 +50,8 @@ class ApprovalMapperTest {
     @Test
     void mapResponseDeveMapearCamposCorretamente() {
         Approval entity = Approval.builder()
-                .id(1L)
-                .releaseId(10L)
+                .id(APPROVAL_ID)
+                .releaseId(RELEASE_ID)
                 .approverEmail("approver@email.com")
                 .outcome(OutcomeEnum.REJECTED)
                 .notes("reprovado")
@@ -57,8 +61,8 @@ class ApprovalMapperTest {
         ApprovalResponseDto result = ApprovalMapper.mapResponse(entity);
 
         assertNotNull(result);
-        assertEquals(1L, result.getId());
-        assertEquals(10L, result.getReleaseId());
+        assertEquals(APPROVAL_ID, result.getId());
+        assertEquals(RELEASE_ID, result.getReleaseId());
         assertEquals("approver@email.com", result.getApproverEmail());
         assertEquals("REJECTED", result.getOutcome());
         assertEquals("reprovado", result.getNotes());

@@ -2,6 +2,7 @@ package com.example.backend.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Size;
+import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -21,8 +22,8 @@ import lombok.ToString;
 @ToString
 public class AuditLogResponseDto {
 
-    @Schema(description = "Identificador único do registro", example = "1")
-    private Long id;
+    @Schema(description = "Identificador único do registro", example = "30000000-0000-0000-0000-000000000001")
+    private UUID id;
 
     @Schema(description = "Ator que realizou a ação", example = "usuario@example.com")
     @Size(max = DtoConstants.MAX_TEXT_LENGTH, message = "Ator deve ter no máximo 255 caracteres")
@@ -36,8 +37,8 @@ public class AuditLogResponseDto {
     @Size(max = DtoConstants.MAX_TEXT_LENGTH, message = "Entidade deve ter no máximo 255 caracteres")
     private String entity;
 
-    @Schema(description = "ID da entidade", example = "1")
-    private Integer entityId;
+    @Schema(description = "ID textual da entidade", example = "10000000-0000-0000-0000-000000000001")
+    private String entityId;
 
     @Schema(description = "Dados da ação em JSON", example = "{\"field\": \"value\"}")
     private String payload;

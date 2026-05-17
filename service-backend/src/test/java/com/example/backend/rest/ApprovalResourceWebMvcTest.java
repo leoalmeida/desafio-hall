@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.List;
+import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +29,12 @@ import com.example.backend.service.ApprovalService;
 @WebMvcTest(controllers = ApprovalResource.class)
 @Import({SecurityConfig.class, JwtAuthenticationFilter.class})
 class ApprovalResourceWebMvcTest {
+
+    private static final UUID APPROVAL_ID = UUID.fromString("20000000-0000-0000-0000-000000000001");
+    private static final UUID APPROVAL_ID_2 = UUID.fromString("20000000-0000-0000-0000-000000000002");
+    private static final UUID APPROVAL_ID_3 = UUID.fromString("20000000-0000-0000-0000-000000000003");
+    private static final UUID APPROVAL_ID_4 = UUID.fromString("20000000-0000-0000-0000-000000000004");
+    private static final UUID RELEASE_ID = UUID.fromString("10000000-0000-0000-0000-000000000010");
 
     @Autowired
     private MockMvc mockMvc;
@@ -56,10 +63,10 @@ class ApprovalResourceWebMvcTest {
         when(jwtService.extractRole(VALID_TOKEN)).thenReturn("USER");
     }
 
-    private ApprovalResponseDto buildApprovalDto(final Long id, final String outcome) {
+    private ApprovalResponseDto buildApprovalDto(final UUID id, final String outcome) {
         return ApprovalResponseDto.builder()
                 .id(id)
-                .releaseId(10L)
+                .releaseId(RELEASE_ID)
                 .approverEmail("approver@test.com")
                 .outcome(outcome)
                 .timestamp("2026-01-01T12:00:00")
@@ -89,11 +96,11 @@ class ApprovalResourceWebMvcTest {
     @Test
     void findAllDeveRetornar200ComTokenAdmin() throws Exception {
         mockAdminToken();
-        when(approvalService.findAll()).thenReturn(List.of(buildApprovalDto(1L, "APPROVED")));
+        when(approvalService.findAll()).thenReturn(List.of(buildApprovalDto(APPROVAL_ID, "APPROVED")));
 
         mockMvc.perform(get("/api/approvals").header(HttpHeaders.AUTHORIZATION, AUTH_HEADER))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(1))
+            .andExpect(jsonPath("$[0].id").value(APPROVAL_ID.toString()))
                 .andExpect(jsonPath("$[0].outcome").value("APPROVED"));
 
         verify(approvalService).findAll();
@@ -105,13 +112,13 @@ class ApprovalResourceWebMvcTest {
     void findByApproverDeveRetornar200ComTokenAdmin() throws Exception {
         mockAdminToken();
         when(approvalService.findByApprover("approver@test.com"))
-                .thenReturn(List.of(buildApprovalDto(2L, "REJECTED")));
+                .thenReturn(List.of(buildApprovalDto(APPROVAL_ID_2, "REJECTED")));
 
         mockMvc.perform(get("/api/approvals/approver")
                         .header(HttpHeaders.AUTHORIZATION, AUTH_HEADER)
                         .param("aprovador", "approver@test.com"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(2));
+        .andExpect(jsonPath("$[0].id").value(APPROVAL_ID_2.toString()));
 
         verify(approvalService).findByApprover("approver@test.com");
     }
@@ -131,16 +138,16 @@ class ApprovalResourceWebMvcTest {
     @Test
     void findByReleaseDeveRetornar200ComTokenAdmin() throws Exception {
         mockAdminToken();
-        when(approvalService.findByReleaseId(10L))
-                .thenReturn(List.of(buildApprovalDto(3L, "APPROVED")));
+        when(approvalService.findByReleaseId(RELEASE_ID))
+            .thenReturn(List.of(buildApprovalDto(APPROVAL_ID_3, "APPROVED")));
 
         mockMvc.perform(get("/api/approvals/release")
                         .header(HttpHeaders.AUTHORIZATION, AUTH_HEADER)
-                        .param("releaseId", "10"))
+                .param("releaseId", RELEASE_ID.toString()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].releaseId").value(10));
+            .andExpect(jsonPath("$[0].releaseId").value(RELEASE_ID.toString()));
 
-        verify(approvalService).findByReleaseId(10L);
+        verify(approvalService).findByReleaseId(RELEASE_ID);
     }
 
     // --- GET /api/approvals/outcome ---
@@ -149,7 +156,7 @@ class ApprovalResourceWebMvcTest {
     void findByOutcomeDeveRetornar200ComTokenAdmin() throws Exception {
         mockAdminToken();
         when(approvalService.findByOutcome(OutcomeEnum.APPROVED))
-                .thenReturn(List.of(buildApprovalDto(4L, "APPROVED")));
+                .thenReturn(List.of(buildApprovalDto(APPROVAL_ID_4, "APPROVED")));
 
         mockMvc.perform(get("/api/approvals/outcome")
                         .header(HttpHeaders.AUTHORIZATION, AUTH_HEADER)

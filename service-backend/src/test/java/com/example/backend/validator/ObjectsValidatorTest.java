@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.util.UUID;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -13,6 +15,8 @@ import com.example.backend.dto.ApplicationRequestDto;
 import com.example.backend.dto.ReleaseRequestDto;
 
 class ObjectsValidatorTest {
+
+    private static final UUID APPLICATION_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
 
     private ObjectsValidator<ApplicationRequestDto> appValidator;
     private ObjectsValidator<ReleaseRequestDto> releaseValidator;
@@ -39,8 +43,7 @@ class ObjectsValidatorTest {
 
     @Test
     void validateDeveLancarIllegalArgumentExceptionQuandoViolacaoDeConstraint() {
-        // name tem @Size(max=100), overflow propositalmente
-        String nomeGigante = "X".repeat(101);
+        String nomeGigante = "X".repeat(256);
         ApplicationRequestDto dto = ApplicationRequestDto.builder()
                 .name(nomeGigante)
                 .build();
@@ -50,7 +53,7 @@ class ObjectsValidatorTest {
 
     @Test
     void validateDeveLancarIllegalArgumentExceptionComMensagemDeErro() {
-        String nomeGigante = "Y".repeat(101);
+        String nomeGigante = "Y".repeat(256);
         ApplicationRequestDto dto = ApplicationRequestDto.builder()
                 .name(nomeGigante)
                 .build();
@@ -70,7 +73,7 @@ class ObjectsValidatorTest {
     @Test
     void validateDeveRetornarReleaseRequestDtoQuandoValido() {
         ReleaseRequestDto dto = ReleaseRequestDto.builder()
-                .applicationId(1L)
+                .applicationId(APPLICATION_ID)
                 .version("V1.0")
                 .env(EnvironmentEnum.PROD)
                 .status(StatusEnum.CREATED)

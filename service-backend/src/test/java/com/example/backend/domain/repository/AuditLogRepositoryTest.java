@@ -3,6 +3,7 @@ package com.example.backend.domain.repository;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -24,6 +25,12 @@ import com.example.backend.domain.entity.AuditLog;
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY)
 class AuditLogRepositoryTest {
 
+    private static final UUID MISSING_AUDIT_LOG_ID = UUID.fromString("30000000-0000-0000-0000-000000000999");
+    private static final String APPLICATION_ENTITY_ID = "00000000-0000-0000-0000-000000000001";
+    private static final String RELEASE_ENTITY_ID = "10000000-0000-0000-0000-000000000100";
+    private static final String USER_ENTITY_ID = "40000000-0000-0000-0000-000000000005";
+    private static final String NEW_APPLICATION_ENTITY_ID = "00000000-0000-0000-0000-000000000002";
+
     @Autowired
     private TestEntityManager entityManager;
 
@@ -44,7 +51,7 @@ class AuditLogRepositoryTest {
                 .actor("admin@example.com")
                 .action("CREATE")
                 .entity("Application")
-                .entityId(1)
+                .entityId(APPLICATION_ENTITY_ID)
                 .payload("{\"name\": \"app-core\"}")
                 .timestamp(now)
                 .build();
@@ -53,7 +60,7 @@ class AuditLogRepositoryTest {
                 .actor("approver@example.com")
                 .action("APPROVE")
                 .entity("Release")
-                .entityId(100)
+            .entityId(RELEASE_ENTITY_ID)
                 .payload("{\"releaseId\": 100, \"status\": \"APPROVED\"}")
                 .timestamp(now.minusHours(1))
                 .build();
@@ -62,7 +69,7 @@ class AuditLogRepositoryTest {
                 .actor("admin@example.com")
                 .action("UPDATE")
                 .entity("Application")
-                .entityId(1)
+            .entityId(APPLICATION_ENTITY_ID)
                 .payload("{\"name\": \"app-core-updated\"}")
                 .timestamp(now.minusHours(2))
                 .build();
@@ -71,7 +78,7 @@ class AuditLogRepositoryTest {
                 .actor("viewer@example.com")
                 .action("VIEW")
                 .entity("Release")
-                .entityId(100)
+            .entityId(RELEASE_ENTITY_ID)
                 .payload("{\"releaseId\": 100}")
                 .timestamp(now.minusHours(3))
                 .build();
@@ -80,7 +87,7 @@ class AuditLogRepositoryTest {
                 .actor("admin@example.com")
                 .action("DELETE")
                 .entity("User")
-                .entityId(5)
+            .entityId(USER_ENTITY_ID)
                 .payload("{\"email\": \"olduser@example.com\"}")
                 .timestamp(now.minusHours(4))
                 .build();
@@ -98,7 +105,7 @@ class AuditLogRepositoryTest {
                 .actor("newuser@example.com")
                 .action("CREATE")
                 .entity("Application")
-                .entityId(2)
+                .entityId(NEW_APPLICATION_ENTITY_ID)
                 .payload("{\"name\": \"app-new\"}")
                 .timestamp(LocalDateTime.now())
                 .build();
@@ -121,7 +128,7 @@ class AuditLogRepositoryTest {
 
     @Test
     void testFindByIdNaoExistente() {
-        Optional<AuditLog> found = repository.findById(999L);
+        Optional<AuditLog> found = repository.findById(MISSING_AUDIT_LOG_ID);
 
         assertFalse(found.isPresent());
     }
@@ -269,7 +276,7 @@ class AuditLogRepositoryTest {
 
     @Test
     void testDeleteAuditLog() {
-        Long idToDelete = log1.getId();
+        UUID idToDelete = log1.getId();
         repository.delete(log1);
         entityManager.flush();
 

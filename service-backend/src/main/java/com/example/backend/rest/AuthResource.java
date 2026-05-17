@@ -46,7 +46,7 @@ public class AuthResource {
                 request.getEmail(), 
                 "LOGIN",
                 "AppUser", 
-                0, 
+            request.getEmail(), 
                 auditLogManager.toJsonNode(request));
 
         AuthResponseDto response = service.loginUser(request);

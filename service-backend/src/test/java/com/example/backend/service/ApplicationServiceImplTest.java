@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,6 +28,11 @@ import jakarta.persistence.EntityNotFoundException;
 
 @ExtendWith(MockitoExtension.class)
 class ApplicationServiceImplTest {
+
+    private static final UUID APPLICATION_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
+    private static final UUID APPLICATION_ID_10 = UUID.fromString("00000000-0000-0000-0000-000000000010");
+    private static final UUID MISSING_APPLICATION_ID = UUID.fromString("00000000-0000-0000-0000-000000000099");
+    private static final UUID OTHER_APPLICATION_ID = UUID.fromString("00000000-0000-0000-0000-000000000123");
 
     @Mock
     private ApplicationRepository applicationRepository;
@@ -55,7 +61,7 @@ class ApplicationServiceImplTest {
                 .build();
 
         Application persisted = Application.builder()
-                .id(10L)
+            .id(APPLICATION_ID_10)
                 .name("app-core")
                 .ownerTeam("Team A")
                 .repoUrl("https://repo")
@@ -67,7 +73,7 @@ class ApplicationServiceImplTest {
 
         ApplicationResponseDto response = service.create(dto);
 
-        assertEquals(10L, response.getId());
+        assertEquals(APPLICATION_ID_10, response.getId());
         assertEquals("app-core", response.getName());
         verify(applicationRepository, times(1)).saveAndFlush(any(Application.class));
     }
@@ -76,21 +82,21 @@ class ApplicationServiceImplTest {
     void updateDeveFalharQuandoIdInvalido() {
         ApplicationRequestDto dto = ApplicationRequestDto.builder().name("new-name").build();
 
-        assertThrows(IllegalArgumentException.class, () -> service.update(0L, dto, true));
+        assertThrows(IllegalArgumentException.class, () -> service.update(null, dto, true));
     }
 
     @Test
     void updateDeveFalharQuandoAplicacaoNaoExiste() {
         ApplicationRequestDto dto = ApplicationRequestDto.builder().name("new-name").build();
-        when(applicationRepository.findById(99L)).thenReturn(Optional.empty());
+        when(applicationRepository.findById(MISSING_APPLICATION_ID)).thenReturn(Optional.empty());
 
-        assertThrows(EntityNotFoundException.class, () -> service.update(99L, dto, false));
+        assertThrows(EntityNotFoundException.class, () -> service.update(MISSING_APPLICATION_ID, dto, false));
     }
 
     @Test
     void updateParcialDeveAlterarSomenteCamposInformados() {
         Application existing = Application.builder()
-                .id(1L)
+                .id(APPLICATION_ID)
                 .name("old-name")
                 .ownerTeam("old-team")
                 .repoUrl("https://old")
@@ -100,11 +106,11 @@ class ApplicationServiceImplTest {
 
         ApplicationRequestDto partialDto = ApplicationRequestDto.builder().name("new-name").build();
 
-        when(applicationRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(applicationRepository.findById(APPLICATION_ID)).thenReturn(Optional.of(existing));
         when(applicationRepository.saveAndFlush(any(Application.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        ApplicationResponseDto response = service.update(1L, partialDto, false);
+        ApplicationResponseDto response = service.update(APPLICATION_ID, partialDto, false);
 
         assertEquals("new-name", response.getName());
         assertEquals("old-team", response.getOwnerTeam());
@@ -113,18 +119,18 @@ class ApplicationServiceImplTest {
 
     @Test
     void deleteDeveFalharQuandoAplicacaoNaoExiste() {
-        when(applicationRepository.findById(123L)).thenReturn(Optional.empty());
+        when(applicationRepository.findById(OTHER_APPLICATION_ID)).thenReturn(Optional.empty());
 
-        assertThrows(EntityNotFoundException.class, () -> service.delete(123L));
+        assertThrows(EntityNotFoundException.class, () -> service.delete(OTHER_APPLICATION_ID));
     }
 
     @Test
     void deleteDeveExecutarQuandoAplicacaoExiste() {
-        Application existing = Application.builder().id(1L).name("app").build();
-        when(applicationRepository.findById(1L)).thenReturn(Optional.of(existing));
+        Application existing = Application.builder().id(APPLICATION_ID).name("app").build();
+        when(applicationRepository.findById(APPLICATION_ID)).thenReturn(Optional.of(existing));
 
-        assertDoesNotThrow(() -> service.delete(1L));
+        assertDoesNotThrow(() -> service.delete(APPLICATION_ID));
 
-        verify(applicationRepository).deleteById(1L);
+        verify(applicationRepository).deleteById(APPLICATION_ID);
     }
 }

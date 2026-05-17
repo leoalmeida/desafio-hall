@@ -3,6 +3,7 @@ package com.example.backend.domain.repository;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -16,6 +17,7 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
 import com.example.backend.domain.entity.EnvironmentEnum;
 import com.example.backend.domain.entity.Release;
@@ -27,6 +29,11 @@ import com.example.backend.domain.entity.StatusEnum;
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY)
 class ReleaseRepositoryTest {
+
+    private static final UUID APPLICATION_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
+    private static final UUID APPLICATION_ID_2 = UUID.fromString("00000000-0000-0000-0000-000000000002");
+    private static final UUID APPLICATION_ID_3 = UUID.fromString("00000000-0000-0000-0000-000000000003");
+    private static final UUID MISSING_RELEASE_ID = UUID.fromString("10000000-0000-0000-0000-000000000099");
 
     @Autowired
     private TestEntityManager entityManager;
@@ -42,7 +49,7 @@ class ReleaseRepositoryTest {
     @BeforeEach
     void setUp() {
         release1 = Release.builder()
-                .applicationId(1L)
+                .applicationId(APPLICATION_ID)
                 .version("1.0.0")
                 .env(EnvironmentEnum.DEV)
                 .status(StatusEnum.CREATED)
@@ -52,7 +59,7 @@ class ReleaseRepositoryTest {
                 .build();
 
         release2 = Release.builder()
-                .applicationId(1L)
+            .applicationId(APPLICATION_ID)
                 .version("1.0.0")
                 .env(EnvironmentEnum.PREPROD)
                 .status(StatusEnum.APPROVED_PREPROD)
@@ -63,7 +70,7 @@ class ReleaseRepositoryTest {
                 .build();
 
         release3 = Release.builder()
-                .applicationId(1L)
+            .applicationId(APPLICATION_ID)
                 .version("1.0.0")
                 .env(EnvironmentEnum.PROD)
                 .status(StatusEnum.APPROVED_PROD)
@@ -74,7 +81,7 @@ class ReleaseRepositoryTest {
                 .build();
 
         release4 = Release.builder()
-                .applicationId(2L)
+            .applicationId(APPLICATION_ID_2)
                 .version("2.0.0")
                 .env(EnvironmentEnum.DEV)
                 .status(StatusEnum.CREATED)
@@ -91,7 +98,7 @@ class ReleaseRepositoryTest {
     @Test
     void testSaveRelease() {
         Release newRelease = Release.builder()
-                .applicationId(3L)
+                .applicationId(APPLICATION_ID_3)
                 .version("3.0.0")
                 .env(EnvironmentEnum.DEV)
                 .status(StatusEnum.CREATED)
@@ -102,7 +109,7 @@ class ReleaseRepositoryTest {
         Release saved = repository.save(newRelease);
 
         assertNotNull(saved.getId());
-        assertEquals(3L, saved.getApplicationId());
+        assertEquals(APPLICATION_ID_3, saved.getApplicationId());
         assertEquals("3.0.0", saved.getVersion());
     }
 
@@ -111,20 +118,20 @@ class ReleaseRepositoryTest {
         Optional<Release> found = repository.findById(release1.getId());
 
         assertTrue(found.isPresent());
-        assertEquals(1L, found.get().getApplicationId());
+        assertEquals(APPLICATION_ID, found.get().getApplicationId());
         assertEquals("1.0.0", found.get().getVersion());
     }
 
     @Test
     void testFindByIdNaoExistente() {
-        Optional<Release> found = repository.findById(999L);
+        Optional<Release> found = repository.findById(MISSING_RELEASE_ID);
 
         assertFalse(found.isPresent());
     }
 
     @Test
     void testFindReleaseComCriteriosExatos() {
-        List<Release> found = repository.findRelease(1L, "1.0.0", EnvironmentEnum.DEV, StatusEnum.CREATED);
+        List<Release> found = repository.findRelease(APPLICATION_ID, "1.0.0", EnvironmentEnum.DEV, StatusEnum.CREATED);
 
         assertEquals(1, found.size());
         assertEquals(release1.getId(), found.get(0).getId());
@@ -132,7 +139,11 @@ class ReleaseRepositoryTest {
 
     @Test
     void testFindReleaseComEnvironmentPreprod() {
-        List<Release> found = repository.findRelease(1L, "1.0.0", EnvironmentEnum.PREPROD, StatusEnum.APPROVED_PREPROD);
+        List<Release> found = repository.findRelease(
+            APPLICATION_ID,
+            "1.0.0",
+            EnvironmentEnum.PREPROD,
+            StatusEnum.APPROVED_PREPROD);
 
         assertEquals(1, found.size());
         assertEquals(release2.getId(), found.get(0).getId());
@@ -140,7 +151,11 @@ class ReleaseRepositoryTest {
 
     @Test
     void testFindReleaseComEnvironmentProd() {
-        List<Release> found = repository.findRelease(1L, "1.0.0", EnvironmentEnum.PROD, StatusEnum.APPROVED_PROD);
+        List<Release> found = repository.findRelease(
+            APPLICATION_ID,
+            "1.0.0",
+            EnvironmentEnum.PROD,
+            StatusEnum.APPROVED_PROD);
 
         assertEquals(1, found.size());
         assertEquals(release3.getId(), found.get(0).getId());
@@ -148,14 +163,14 @@ class ReleaseRepositoryTest {
 
     @Test
     void testFindReleaseSemResultados() {
-        List<Release> found = repository.findRelease(1L, "9.9.9", EnvironmentEnum.DEV, StatusEnum.CREATED);
+        List<Release> found = repository.findRelease(APPLICATION_ID, "9.9.9", EnvironmentEnum.DEV, StatusEnum.CREATED);
 
         assertTrue(found.isEmpty());
     }
 
     @Test
     void testFindReleaseComAplicacaoDiferente() {
-        List<Release> found = repository.findRelease(2L, "2.0.0", EnvironmentEnum.DEV, StatusEnum.CREATED);
+        List<Release> found = repository.findRelease(APPLICATION_ID_2, "2.0.0", EnvironmentEnum.DEV, StatusEnum.CREATED);
 
         assertEquals(1, found.size());
         assertEquals(release4.getId(), found.get(0).getId());
@@ -186,7 +201,7 @@ class ReleaseRepositoryTest {
 
     @Test
     void testDeleteRelease() {
-        Long idToDelete = release1.getId();
+        UUID idToDelete = release1.getId();
         repository.delete(release1);
         entityManager.flush();
 
@@ -196,14 +211,18 @@ class ReleaseRepositoryTest {
 
     @Test
     void testFindReleaseCaseInsensitiveEnvironment() {
-        List<Release> found = repository.findRelease(1L, "1.0.0", EnvironmentEnum.DEV, StatusEnum.CREATED);
+        List<Release> found = repository.findRelease(APPLICATION_ID, "1.0.0", EnvironmentEnum.DEV, StatusEnum.CREATED);
 
         assertEquals(1, found.size());
     }
 
     @Test
     void testFindReleaseCaseInsensitiveStatus() {
-        List<Release> found = repository.findRelease(1L, "1.0.0", EnvironmentEnum.PREPROD, StatusEnum.APPROVED_PREPROD);
+        List<Release> found = repository.findRelease(
+            APPLICATION_ID,
+            "1.0.0",
+            EnvironmentEnum.PREPROD,
+            StatusEnum.APPROVED_PREPROD);
 
         assertEquals(1, found.size());
     }
@@ -220,5 +239,22 @@ class ReleaseRepositoryTest {
                 .build();
 
         assertThrows(DataIntegrityViolationException.class, () -> repository.saveAndFlush(duplicated));
+    }
+
+    @Test
+    void testDeveAplicarOptimisticLockingPorVersionRow() {
+        UUID releaseId = release1.getId();
+        entityManager.clear();
+
+        Release staleSnapshot = repository.findById(releaseId).orElseThrow();
+        entityManager.detach(staleSnapshot);
+
+        Release currentSnapshot = repository.findById(releaseId).orElseThrow();
+        currentSnapshot.setStatus(StatusEnum.PENDING_PREPROD);
+        repository.saveAndFlush(currentSnapshot);
+
+        staleSnapshot.setStatus(StatusEnum.REJECTED);
+
+        assertThrows(ObjectOptimisticLockingFailureException.class, () -> repository.saveAndFlush(staleSnapshot));
     }
 }

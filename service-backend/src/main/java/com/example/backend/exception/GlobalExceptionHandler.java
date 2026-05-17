@@ -11,6 +11,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -71,10 +72,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     public ResponseEntity<Object> handleGeneral(final Exception e, final WebRequest request) {
         if (e.getClass().isAssignableFrom(UndeclaredThrowableException.class)) {
             assert e instanceof UndeclaredThrowableException : e.getClass();
-            return handleBusinessException(
-                    (BusinessException)
-                            UndeclaredThrowableException.class.cast(e).getUndeclaredThrowable(),
-                    request);
+            return handleUndeclaredThrowableException(UndeclaredThrowableException.class.cast(e), request);
         } else if (e.getClass().isAssignableFrom(MethodArgumentNotValidException.class)) {
             assert e instanceof MethodArgumentNotValidException : e.getClass();
             ResponseError error = handleExceptionArgumentNotValid(MethodArgumentNotValidException.class.cast(e));
@@ -82,20 +80,33 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         } else if (e.getClass().isAssignableFrom(EntityNotFoundException.class)) {
             assert e instanceof EntityNotFoundException : e.getClass();
             return handleEntityNotFoundException(EntityNotFoundException.class.cast(e), request);
+        } else if (e.getClass().isAssignableFrom(ObjectOptimisticLockingFailureException.class)) {
+            assert e instanceof ObjectOptimisticLockingFailureException : e.getClass();
+            return handleOptimisticLockingException(ObjectOptimisticLockingFailureException.class.cast(e), request);
         } else if (e.getClass().isAssignableFrom(ResponseStatusException.class)) {
             assert e instanceof ResponseStatusException : e.getClass();
             return handleResponseStatusException(ResponseStatusException.class.cast(e), request);
         } else {
             String message = messageSource.getMessage(
                     "error.server", new Object[] {e.getMessage()}, Objects.requireNonNull(Locale.getDefault()));
-            return handleExceptionInternal(
-                    e,
-                    responseError("INTERNAL_ERROR", message, e.getClass().getSimpleName()),
-                    Objects.requireNonNull(headers()),
-                    HttpStatus.INTERNAL_SERVER_ERROR,
-                    Objects.requireNonNull(request));
+                return buildInternalErrorResponse(e, request, message);
         }
     }
+
+            private ResponseEntity<Object> handleUndeclaredThrowableException(
+                final UndeclaredThrowableException e, final WebRequest request) {
+            return handleBusinessException((BusinessException) e.getUndeclaredThrowable(), request);
+            }
+
+            private ResponseEntity<Object> buildInternalErrorResponse(
+                final Exception e, final WebRequest request, final String message) {
+            return handleExceptionInternal(
+                e,
+                responseError("INTERNAL_ERROR", message, e.getClass().getSimpleName()),
+                Objects.requireNonNull(headers()),
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                Objects.requireNonNull(request));
+            }
 
     /**
      * Manipulador específico para exceções de validação de argumentos, que coleta os erros de validação
@@ -126,6 +137,16 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return buildResponse(e, error, HttpStatus.UNPROCESSABLE_ENTITY, request);
     }
 
+    @ExceptionHandler({ObjectOptimisticLockingFailureException.class})
+    ResponseEntity<Object> handleOptimisticLockingException(
+            final ObjectOptimisticLockingFailureException e, final WebRequest request) {
+        ResponseError error = responseError(
+                "CONFLICT",
+                "Release atualizada concorrentemente. Recarregue o estado e tente novamente.",
+                "Optimistic locking conflict");
+        return buildResponse(e, error, HttpStatus.CONFLICT, request);
+    }
+
     /* Manipulador para exceções de argumento inválido, que retorna um erro 400 */
     @ExceptionHandler(IllegalArgumentException.class)
     @SuppressWarnings("unused")
@@ -144,6 +165,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             case FORBIDDEN -> "FORBIDDEN";
             case NOT_FOUND -> "NOT_FOUND";
             case BAD_REQUEST -> "BAD_REQUEST";
+            case CONFLICT -> "CONFLICT";
             default -> "HTTP_" + status.value();
         };
         String reasonPhrase = status.getReasonPhrase();

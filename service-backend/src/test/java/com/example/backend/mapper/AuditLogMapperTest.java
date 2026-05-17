@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 
@@ -13,6 +14,10 @@ import com.example.backend.dto.AuditLogRequestDto;
 import com.example.backend.dto.AuditLogResponseDto;
 
 class AuditLogMapperTest {
+
+    private static final UUID AUDIT_LOG_ID = UUID.fromString("30000000-0000-0000-0000-000000000001");
+    private static final String RELEASE_ENTITY_ID = "10000000-0000-0000-0000-000000000099";
+    private static final String APPLICATION_ENTITY_ID = "00000000-0000-0000-0000-000000000007";
 
     @Test
     void mapRequestDeveRetornarNullQuandoDtoForNull() {
@@ -25,7 +30,7 @@ class AuditLogMapperTest {
                 .actor("user@email.com")
                 .action("CREATE")
                 .entity("Release")
-                .entityId(99)
+                .entityId(RELEASE_ENTITY_ID)
                 .payload("{\"k\":\"v\"}")
                 .build();
 
@@ -35,7 +40,7 @@ class AuditLogMapperTest {
         assertEquals("user@email.com", result.getActor());
         assertEquals("CREATE", result.getAction());
         assertEquals("Release", result.getEntity());
-        assertEquals(99, result.getEntityId());
+        assertEquals(RELEASE_ENTITY_ID, result.getEntityId());
         assertEquals("{\"k\":\"v\"}", result.getPayload());
     }
 
@@ -47,11 +52,11 @@ class AuditLogMapperTest {
     @Test
     void mapResponseDeveMapearCamposCorretamente() {
         AuditLog entity = AuditLog.builder()
-                .id(10L)
+                .id(AUDIT_LOG_ID)
                 .actor("admin@email.com")
                 .action("UPDATE")
                 .entity("Application")
-                .entityId(7)
+                .entityId(APPLICATION_ENTITY_ID)
                 .payload("{\"changed\":true}")
                 .timestamp(LocalDateTime.of(2025, 2, 3, 4, 5, 6))
                 .build();
@@ -59,11 +64,11 @@ class AuditLogMapperTest {
         AuditLogResponseDto result = AuditLogMapper.mapResponse(entity);
 
         assertNotNull(result);
-        assertEquals(10L, result.getId());
+        assertEquals(AUDIT_LOG_ID, result.getId());
         assertEquals("admin@email.com", result.getActor());
         assertEquals("UPDATE", result.getAction());
         assertEquals("Application", result.getEntity());
-        assertEquals(7, result.getEntityId());
+        assertEquals(APPLICATION_ENTITY_ID, result.getEntityId());
         assertEquals("{\"changed\":true}", result.getPayload());
         assertEquals("2025-02-03T04:05:06", result.getTimestamp());
     }

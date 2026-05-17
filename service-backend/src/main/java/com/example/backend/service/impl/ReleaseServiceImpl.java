@@ -5,6 +5,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +22,7 @@ import com.example.backend.domain.repository.ReleaseRepository;
 import com.example.backend.dto.ReleaseRequestDto;
 import com.example.backend.dto.ReleaseResponseDto;
 import com.example.backend.dto.EvidenceScoreResponseDto;
+import com.example.backend.dto.ReleaseEvidenceUpdateRequestDto;
 import com.example.backend.exception.BusinessException;
 import com.example.backend.mapper.ReleaseMapper;
 import com.example.backend.policy.PolicyService;
@@ -81,9 +83,9 @@ public class ReleaseServiceImpl implements ReleaseService {
     @Override
     @Transactional(readOnly = true)
     public List<ReleaseResponseDto> find(
-            final Long applicationId, final String version, final EnvironmentEnum environment, final StatusEnum status)
+            final UUID applicationId, final String version, final EnvironmentEnum environment, final StatusEnum status)
             throws BusinessException {
-        if (applicationId == null || applicationId <= 0) {
+        if (applicationId == null) {
             throw new IllegalArgumentException("ID da aplicação inválido");
         }
         if (version == null || version.isEmpty()) {
@@ -111,8 +113,8 @@ public class ReleaseServiceImpl implements ReleaseService {
 
     @Override
     @Transactional(readOnly = true)
-    public ReleaseResponseDto findById(final Long id) throws EntityNotFoundException {
-        if (id == null || id <= 0) {
+    public ReleaseResponseDto findById(final UUID id) throws EntityNotFoundException {
+        if (id == null) {
             throw new IllegalArgumentException("ID da release inválido");
         }
         log.info("Buscando release por ID: {}", id);
@@ -136,9 +138,9 @@ public class ReleaseServiceImpl implements ReleaseService {
 
     @Override
     @Transactional
-    public ReleaseResponseDto updateRelease(final Long id, final ReleaseRequestDto dto)
+    public ReleaseResponseDto updateRelease(final UUID id, final ReleaseRequestDto dto)
             throws EntityNotFoundException, BusinessException {
-        if (id == null || id <= 0) {
+        if (id == null) {
             throw new IllegalArgumentException("ID da release inválido");
         }
         if (dto == null) {
@@ -163,8 +165,29 @@ public class ReleaseServiceImpl implements ReleaseService {
 
     @Override
     @Transactional
-    public void deleteRelease(final Long id) throws EntityNotFoundException, BusinessException {
-        if (id == null || id <= 0) {
+    public ReleaseResponseDto updateEvidenceUrl(final UUID id, final ReleaseEvidenceUpdateRequestDto dto)
+            throws EntityNotFoundException, BusinessException {
+        if (id == null) {
+            throw new IllegalArgumentException("ID da release inválido");
+        }
+        if (dto == null || dto.getEvidenceUrl() == null || dto.getEvidenceUrl().isBlank()) {
+            throw new BusinessException("Evidence URL não pode ser vazia");
+        }
+
+        Release entity = repository
+                .findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Release não encontrada com ID: " + id));
+
+        entity.setEvidenceUrl(dto.getEvidenceUrl());
+
+        Release saved = repository.saveAndFlush(entity);
+        return ReleaseMapper.mapResponse(saved);
+    }
+
+    @Override
+    @Transactional
+    public void deleteRelease(final UUID id) throws EntityNotFoundException, BusinessException {
+        if (id == null) {
             throw new IllegalArgumentException("ID da release inválido");
         }
         log.info("Removendo release ID: {}", id);
@@ -179,9 +202,9 @@ public class ReleaseServiceImpl implements ReleaseService {
 
     @Override
     @Transactional
-    public void approveRelease(final Long id, final OutcomeEnum outcome)
+    public void approveRelease(final UUID id, final OutcomeEnum outcome)
             throws EntityNotFoundException, BusinessException {
-        if (id == null || id <= 0) {
+        if (id == null) {
             throw new IllegalArgumentException("ID da release inválido");
         }
         if (outcome == null) {
@@ -207,7 +230,7 @@ public class ReleaseServiceImpl implements ReleaseService {
         repository.saveAndFlush(entity);
     }
 
-    private void applyApprovalTransition(final Long id, final OutcomeEnum outcome, final Release entity)
+    private void applyApprovalTransition(final UUID id, final OutcomeEnum outcome, final Release entity)
             throws BusinessException {
         if (outcome == OutcomeEnum.APPROVED) {
             switch (entity.getStatus()) {
@@ -230,8 +253,8 @@ public class ReleaseServiceImpl implements ReleaseService {
 
     @Override
     @Transactional
-    public void promoteRelease(final Long id) throws EntityNotFoundException, BusinessException {
-        if (id == null || id <= 0) {
+    public void promoteRelease(final UUID id) throws EntityNotFoundException, BusinessException {
+        if (id == null) {
             throw new IllegalArgumentException("ID da release inválido");
         }
         log.info("Promovendo release ID: {}", id);
@@ -264,7 +287,7 @@ public class ReleaseServiceImpl implements ReleaseService {
         entity.setStatus(StatusEnum.PENDING_PREPROD);
     }
 
-    private void promoteFromPreprodToProd(final Long id, final Release entity) throws BusinessException {
+    private void promoteFromPreprodToProd(final UUID id, final Release entity) throws BusinessException {
         if (entity.getStatus() != StatusEnum.APPROVED_PREPROD) {
             throw new BusinessException("Status da release não permite promoção PREPROD→PROD");
         }
@@ -305,8 +328,8 @@ public class ReleaseServiceImpl implements ReleaseService {
 
     @Override
     @Transactional(readOnly = true)
-    public EvidenceScoreResponseDto calculateEvidenceScore(final Long id) throws EntityNotFoundException {
-        if (id == null || id <= 0) {
+    public EvidenceScoreResponseDto calculateEvidenceScore(final UUID id) throws EntityNotFoundException {
+        if (id == null) {
             throw new IllegalArgumentException("ID da release inválido");
         }
 

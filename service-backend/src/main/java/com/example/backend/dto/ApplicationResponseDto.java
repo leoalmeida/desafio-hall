@@ -4,6 +4,7 @@ import com.example.backend.validator.ApplicationValidator;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Size;
+import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -23,8 +24,8 @@ import lombok.ToString;
 @ToString
 public class ApplicationResponseDto {
 
-    @Schema(description = "Identificador único da aplicação", example = "1")
-    private Long id;
+        @Schema(description = "Identificador único da aplicação", example = "00000000-0000-0000-0000-000000000001")
+        private UUID id;
 
     @Schema(
             description = "Nome da aplicação",

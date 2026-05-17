@@ -9,7 +9,9 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import jakarta.persistence.Version;
 import java.io.Serial;
+import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -39,11 +41,11 @@ public class Release {
     private static final int MAX_URL_LENGTH = 255;
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
     @Column(name = "application_id", nullable = false)
-    private Long applicationId;
+    private UUID applicationId;
 
     @Column(name = "version", nullable = false, length = MAX_VERSION_LENGTH)
     private String version;
@@ -59,6 +61,7 @@ public class Release {
     @Column(name = "evidence_url", length = MAX_URL_LENGTH)
     private String evidenceUrl;
 
+    @Version
     @Column(name = "version_row", nullable = false)
     private Integer versionRow;
 

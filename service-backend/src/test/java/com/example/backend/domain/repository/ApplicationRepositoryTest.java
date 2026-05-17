@@ -3,6 +3,7 @@ package com.example.backend.domain.repository;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -23,6 +24,8 @@ import com.example.backend.domain.entity.Application;
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY)
 class ApplicationRepositoryTest {
+
+    private static final UUID MISSING_APPLICATION_ID = UUID.fromString("00000000-0000-0000-0000-000000000099");
 
     @Autowired
     private TestEntityManager entityManager;
@@ -93,7 +96,7 @@ class ApplicationRepositoryTest {
 
     @Test
     void testFindByIdNaoExistente() {
-        Optional<Application> found = repository.findById(999L);
+        Optional<Application> found = repository.findById(MISSING_APPLICATION_ID);
 
         assertFalse(found.isPresent());
     }
@@ -144,7 +147,7 @@ class ApplicationRepositoryTest {
 
     @Test
     void testDeleteAplicacao() {
-        Long idToDelete = app1.getId();
+        UUID idToDelete = app1.getId();
         repository.delete(app1);
         entityManager.flush();
 

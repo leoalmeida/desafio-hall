@@ -3,6 +3,7 @@ package com.example.backend.domain.repository;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -25,6 +26,13 @@ import com.example.backend.domain.entity.OutcomeEnum;
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY)
 class ApprovalRepositoryTest {
 
+    private static final UUID RELEASE_ID = UUID.fromString("10000000-0000-0000-0000-000000000001");
+    private static final UUID RELEASE_ID_2 = UUID.fromString("10000000-0000-0000-0000-000000000002");
+    private static final UUID RELEASE_ID_3 = UUID.fromString("10000000-0000-0000-0000-000000000003");
+    private static final UUID RELEASE_ID_4 = UUID.fromString("10000000-0000-0000-0000-000000000004");
+    private static final UUID MISSING_APPROVAL_ID = UUID.fromString("20000000-0000-0000-0000-000000000999");
+    private static final UUID MISSING_RELEASE_ID = UUID.fromString("10000000-0000-0000-0000-000000000999");
+
     @Autowired
     private TestEntityManager entityManager;
 
@@ -39,7 +47,7 @@ class ApprovalRepositoryTest {
     @BeforeEach
     void setUp() {
         approval1 = Approval.builder()
-                .releaseId(1L)
+                .releaseId(RELEASE_ID)
                 .approverEmail("approver1@example.com")
                 .outcome(OutcomeEnum.APPROVED)
                 .notes("Approved for production")
@@ -47,7 +55,7 @@ class ApprovalRepositoryTest {
                 .build();
 
         approval2 = Approval.builder()
-                .releaseId(1L)
+            .releaseId(RELEASE_ID)
                 .approverEmail("approver2@example.com")
                 .outcome(OutcomeEnum.APPROVED)
                 .notes("Approved after review")
@@ -55,7 +63,7 @@ class ApprovalRepositoryTest {
                 .build();
 
         approval3 = Approval.builder()
-                .releaseId(2L)
+            .releaseId(RELEASE_ID_2)
                 .approverEmail("approver1@example.com")
                 .outcome(OutcomeEnum.REJECTED)
                 .notes("Needs more testing")
@@ -63,7 +71,7 @@ class ApprovalRepositoryTest {
                 .build();
 
         approval4 = Approval.builder()
-                .releaseId(3L)
+            .releaseId(RELEASE_ID_3)
                 .approverEmail("approver3@example.com")
                 .outcome(OutcomeEnum.APPROVED)
                 .timestamp(LocalDateTime.now())
@@ -78,7 +86,7 @@ class ApprovalRepositoryTest {
     @Test
     void testSaveApproval() {
         Approval newApproval = Approval.builder()
-                .releaseId(4L)
+                .releaseId(RELEASE_ID_4)
                 .approverEmail("approver4@example.com")
                 .outcome(OutcomeEnum.APPROVED)
                 .notes("Approved")
@@ -88,7 +96,7 @@ class ApprovalRepositoryTest {
         Approval saved = repository.save(newApproval);
 
         assertNotNull(saved.getId());
-        assertEquals(4L, saved.getReleaseId());
+        assertEquals(RELEASE_ID_4, saved.getReleaseId());
         assertEquals("approver4@example.com", saved.getApproverEmail());
     }
 
@@ -97,38 +105,38 @@ class ApprovalRepositoryTest {
         Optional<Approval> found = repository.findById(approval1.getId());
 
         assertTrue(found.isPresent());
-        assertEquals(1L, found.get().getReleaseId());
+        assertEquals(RELEASE_ID, found.get().getReleaseId());
         assertEquals("approver1@example.com", found.get().getApproverEmail());
     }
 
     @Test
     void testFindByIdNaoExistente() {
-        Optional<Approval> found = repository.findById(999L);
+        Optional<Approval> found = repository.findById(MISSING_APPROVAL_ID);
 
         assertFalse(found.isPresent());
     }
 
     @Test
     void testFindByReleaseIdComResultados() {
-        List<Approval> found = repository.findByReleaseId(1L);
+        List<Approval> found = repository.findByReleaseId(RELEASE_ID);
 
         assertEquals(2, found.size());
-        assertTrue(found.stream().allMatch(a -> a.getReleaseId().equals(1L)));
+        assertTrue(found.stream().allMatch(a -> a.getReleaseId().equals(RELEASE_ID)));
     }
 
     @Test
     void testFindByReleaseIdSemResultados() {
-        List<Approval> found = repository.findByReleaseId(999L);
+        List<Approval> found = repository.findByReleaseId(MISSING_RELEASE_ID);
 
         assertTrue(found.isEmpty());
     }
 
     @Test
     void testFindByReleaseIdComUmaAprovacao() {
-        List<Approval> found = repository.findByReleaseId(3L);
+        List<Approval> found = repository.findByReleaseId(RELEASE_ID_3);
 
         assertEquals(1, found.size());
-        assertEquals(approval3.getId(), found.get(0).getId());
+        assertEquals(approval4.getId(), found.get(0).getId());
     }
 
     @Test
@@ -194,7 +202,7 @@ class ApprovalRepositoryTest {
 
     @Test
     void testDeleteApproval() {
-        Long idToDelete = approval1.getId();
+        UUID idToDelete = approval1.getId();
         repository.delete(approval1);
         entityManager.flush();
 

@@ -2,6 +2,7 @@ package com.example.backend.service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -26,6 +27,8 @@ import com.example.backend.domain.entity.StatusEnum;
 import com.example.backend.domain.repository.ApprovalRepository;
 import com.example.backend.domain.repository.ReleaseRepository;
 import com.example.backend.dto.EvidenceScoreResponseDto;
+import com.example.backend.dto.ReleaseEvidenceUpdateRequestDto;
+import com.example.backend.dto.ReleaseResponseDto;
 import com.example.backend.exception.BusinessException;
 import com.example.backend.policy.PolicyService;
 import com.example.backend.service.impl.ReleaseServiceImpl;
@@ -35,6 +38,8 @@ import jakarta.persistence.EntityNotFoundException;
 @ExtendWith(MockitoExtension.class)
 @SuppressWarnings("null")
 class ReleaseServiceImplTest {
+
+    private static final UUID RELEASE_ID = UUID.fromString("10000000-0000-0000-0000-000000000001");
 
     @Mock
     private ReleaseRepository releaseRepository;
@@ -56,11 +61,11 @@ class ReleaseServiceImplTest {
     @Test
     void approveReleaseDeveAprovarQuandoStatusPendentePreprod() {
         Release release = releaseComStatus(StatusEnum.PENDING_PREPROD, EnvironmentEnum.PREPROD);
-        when(releaseRepository.findById(1L)).thenReturn(Optional.of(release));
-        when(approvalRepository.findByReleaseId(1L))
+        when(releaseRepository.findById(RELEASE_ID)).thenReturn(Optional.of(release));
+        when(approvalRepository.findByReleaseId(RELEASE_ID))
                 .thenReturn(List.of(Approval.builder().outcome(OutcomeEnum.APPROVED).build()));
 
-        assertDoesNotThrow(() -> service.approveRelease(1L, OutcomeEnum.APPROVED));
+        assertDoesNotThrow(() -> service.approveRelease(RELEASE_ID, OutcomeEnum.APPROVED));
 
         verify(releaseRepository).saveAndFlush(any(Release.class));
         verify(policyService).validateFreezeWindow(EnvironmentEnum.PREPROD);
@@ -71,25 +76,25 @@ class ReleaseServiceImplTest {
     @Test
     void approveReleaseDeveRejeitarQuandoOutcomeRejected() {
         Release release = releaseComStatus(StatusEnum.PENDING_PROD, EnvironmentEnum.PROD);
-        when(releaseRepository.findById(1L)).thenReturn(Optional.of(release));
+        when(releaseRepository.findById(RELEASE_ID)).thenReturn(Optional.of(release));
 
-        assertDoesNotThrow(() -> service.approveRelease(1L, OutcomeEnum.REJECTED));
+        assertDoesNotThrow(() -> service.approveRelease(RELEASE_ID, OutcomeEnum.REJECTED));
 
         verify(releaseRepository).saveAndFlush(any(Release.class));
         verify(policyService).validateFreezeWindow(EnvironmentEnum.PROD);
-        verify(approvalRepository, never()).findByReleaseId(anyLong());
+        verify(approvalRepository, never()).findByReleaseId(any(UUID.class));
         assertEquals(StatusEnum.REJECTED, release.getStatus());
     }
 
     @Test
     void approveReleaseDeveFalharQuandoStatusNaoPermiteAprovacao() {
         Release release = releaseComStatus(StatusEnum.CREATED, EnvironmentEnum.DEV);
-        when(releaseRepository.findById(1L)).thenReturn(Optional.of(release));
-        when(approvalRepository.findByReleaseId(1L))
+        when(releaseRepository.findById(RELEASE_ID)).thenReturn(Optional.of(release));
+        when(approvalRepository.findByReleaseId(RELEASE_ID))
                 .thenReturn(List.of(Approval.builder().outcome(OutcomeEnum.APPROVED).build()));
 
         BusinessException ex =
-            assertThrows(BusinessException.class, () -> service.approveRelease(1L, OutcomeEnum.APPROVED));
+            assertThrows(BusinessException.class, () -> service.approveRelease(RELEASE_ID, OutcomeEnum.APPROVED));
         assertNotNull(ex);
 
         verify(policyService).validateFreezeWindow(EnvironmentEnum.DEV);
@@ -100,9 +105,9 @@ class ReleaseServiceImplTest {
     @Test
     void promoteReleaseDeveMoverParaPendingPreprodQuandoStatusCreated() {
         Release release = releaseComStatus(StatusEnum.CREATED, EnvironmentEnum.DEV);
-        when(releaseRepository.findById(1L)).thenReturn(Optional.of(release));
+        when(releaseRepository.findById(RELEASE_ID)).thenReturn(Optional.of(release));
 
-        assertDoesNotThrow(() -> service.promoteRelease(1L));
+        assertDoesNotThrow(() -> service.promoteRelease(RELEASE_ID));
 
         verify(releaseRepository).saveAndFlush(any(Release.class));
         verify(policyService).validateFreezeWindow(EnvironmentEnum.PREPROD);
@@ -114,12 +119,12 @@ class ReleaseServiceImplTest {
     void promoteReleaseDeveMoverParaProdQuandoStatusApprovedPreprodComRegrasAtendidas() {
         Release release = releaseComStatus(StatusEnum.APPROVED_PREPROD, EnvironmentEnum.PREPROD);
         release.setEvidenceUrl("https://example.com/evidence");
-        when(releaseRepository.findById(1L)).thenReturn(Optional.of(release));
-        when(approvalRepository.findByReleaseId(1L)).thenReturn(List.of(
+        when(releaseRepository.findById(RELEASE_ID)).thenReturn(Optional.of(release));
+        when(approvalRepository.findByReleaseId(RELEASE_ID)).thenReturn(List.of(
             Approval.builder().outcome(OutcomeEnum.APPROVED).build(),
             Approval.builder().outcome(OutcomeEnum.APPROVED).build()));
 
-        assertDoesNotThrow(() -> service.promoteRelease(1L));
+        assertDoesNotThrow(() -> service.promoteRelease(RELEASE_ID));
 
         verify(releaseRepository).saveAndFlush(any(Release.class));
         verify(policyService).validateFreezeWindow(EnvironmentEnum.PROD);
@@ -131,9 +136,9 @@ class ReleaseServiceImplTest {
     @Test
     void promoteReleaseDeveFalharQuandoStatusNaoPermitePromocao() {
         Release release = releaseComStatus(StatusEnum.REJECTED, EnvironmentEnum.DEV);
-        when(releaseRepository.findById(1L)).thenReturn(Optional.of(release));
+        when(releaseRepository.findById(RELEASE_ID)).thenReturn(Optional.of(release));
 
-        BusinessException ex = assertThrows(BusinessException.class, () -> service.promoteRelease(1L));
+        BusinessException ex = assertThrows(BusinessException.class, () -> service.promoteRelease(RELEASE_ID));
         assertNotNull(ex);
 
         verify(policyService, never()).validateFreezeWindow(any(EnvironmentEnum.class));
@@ -144,11 +149,11 @@ class ReleaseServiceImplTest {
     void promoteReleaseDeveFalharQuandoEvidenceUrlInvalidaNoFluxoPreprodProd() {
         Release release = releaseComStatus(StatusEnum.APPROVED_PREPROD, EnvironmentEnum.PREPROD);
         release.setEvidenceUrl("not-a-url");
-        when(releaseRepository.findById(1L)).thenReturn(Optional.of(release));
+        when(releaseRepository.findById(RELEASE_ID)).thenReturn(Optional.of(release));
 
-        BusinessException ex = assertThrows(BusinessException.class, () -> service.promoteRelease(1L));
+        BusinessException ex = assertThrows(BusinessException.class, () -> service.promoteRelease(RELEASE_ID));
         assertNotNull(ex);
-        verify(approvalRepository, never()).findByReleaseId(anyLong());
+        verify(approvalRepository, never()).findByReleaseId(any(UUID.class));
         verify(policyService, never()).validateApprovalThresholds(anyLong(), anyLong());
         verify(releaseRepository, never()).saveAndFlush(release);
     }
@@ -156,33 +161,33 @@ class ReleaseServiceImplTest {
     @Test
     void promoteReleaseDevePropagarBloqueioPorFreezeWindow() throws BusinessException {
         Release release = releaseComStatus(StatusEnum.CREATED, EnvironmentEnum.DEV);
-        when(releaseRepository.findById(1L)).thenReturn(Optional.of(release));
+        when(releaseRepository.findById(RELEASE_ID)).thenReturn(Optional.of(release));
         org.mockito.Mockito.doThrow(new BusinessException("freeze ativo"))
                 .when(policyService)
                 .validateFreezeWindow(EnvironmentEnum.PREPROD);
 
-        BusinessException ex = assertThrows(BusinessException.class, () -> service.promoteRelease(1L));
+        BusinessException ex = assertThrows(BusinessException.class, () -> service.promoteRelease(RELEASE_ID));
         assertNotNull(ex);
         verify(releaseRepository, never()).saveAndFlush(release);
     }
 
     @Test
     void promoteReleaseDeveFalharQuandoNaoEncontrarRelease() {
-        when(releaseRepository.findById(1L)).thenReturn(Optional.empty());
+        when(releaseRepository.findById(RELEASE_ID)).thenReturn(Optional.empty());
 
-        EntityNotFoundException ex = assertThrows(EntityNotFoundException.class, () -> service.promoteRelease(1L));
+        EntityNotFoundException ex = assertThrows(EntityNotFoundException.class, () -> service.promoteRelease(RELEASE_ID));
         assertNotNull(ex);
     }
 
     @Test
     void approveReleaseDeveAprovarQuandoStatusPendenteProd() {
         Release release = releaseComStatus(StatusEnum.PENDING_PROD, EnvironmentEnum.PROD);
-        when(releaseRepository.findById(1L)).thenReturn(Optional.of(release));
-        when(approvalRepository.findByReleaseId(1L)).thenReturn(List.of(
+        when(releaseRepository.findById(RELEASE_ID)).thenReturn(Optional.of(release));
+        when(approvalRepository.findByReleaseId(RELEASE_ID)).thenReturn(List.of(
             Approval.builder().outcome(OutcomeEnum.APPROVED).build(),
             Approval.builder().outcome(OutcomeEnum.REJECTED).build()));
 
-        assertDoesNotThrow(() -> service.approveRelease(1L, OutcomeEnum.APPROVED));
+        assertDoesNotThrow(() -> service.approveRelease(RELEASE_ID, OutcomeEnum.APPROVED));
 
         verify(releaseRepository).saveAndFlush(any(Release.class));
         verify(policyService).validateFreezeWindow(EnvironmentEnum.PROD);
@@ -192,25 +197,25 @@ class ReleaseServiceImplTest {
 
     @Test
     void approveReleaseDeveFalharQuandoNaoEncontrarRelease() {
-        when(releaseRepository.findById(1L)).thenReturn(Optional.empty());
+        when(releaseRepository.findById(RELEASE_ID)).thenReturn(Optional.empty());
 
         EntityNotFoundException ex =
-            assertThrows(EntityNotFoundException.class, () -> service.approveRelease(1L, OutcomeEnum.APPROVED));
+            assertThrows(EntityNotFoundException.class, () -> service.approveRelease(RELEASE_ID, OutcomeEnum.APPROVED));
         assertNotNull(ex);
     }
 
     @Test
     void approveReleaseDevePropagarErroDaPolicy() throws BusinessException {
         Release release = releaseComStatus(StatusEnum.PENDING_PREPROD, EnvironmentEnum.PREPROD);
-        when(releaseRepository.findById(1L)).thenReturn(Optional.of(release));
-        when(approvalRepository.findByReleaseId(1L))
+        when(releaseRepository.findById(RELEASE_ID)).thenReturn(Optional.of(release));
+        when(approvalRepository.findByReleaseId(RELEASE_ID))
                 .thenReturn(List.of(Approval.builder().outcome(OutcomeEnum.APPROVED).build()));
         org.mockito.Mockito.doThrow(new BusinessException("Policy bloqueou"))
                 .when(policyService)
                 .validateApprovalThresholds(1L, 1L);
 
         BusinessException ex =
-            assertThrows(BusinessException.class, () -> service.approveRelease(1L, OutcomeEnum.APPROVED));
+            assertThrows(BusinessException.class, () -> service.approveRelease(RELEASE_ID, OutcomeEnum.APPROVED));
         assertNotNull(ex);
         verify(releaseRepository, never()).saveAndFlush(release);
     }
@@ -219,22 +224,22 @@ class ReleaseServiceImplTest {
     void calculateEvidenceScoreDeveRetornar100QuandoEvidenciaForte() {
         Release release = releaseComStatus(StatusEnum.DEPLOYED, EnvironmentEnum.PROD);
         release.setEvidenceUrl("https://ci.example.com/reports/rel-1?result=PASS");
-        when(releaseRepository.findById(1L)).thenReturn(Optional.of(release));
+        when(releaseRepository.findById(RELEASE_ID)).thenReturn(Optional.of(release));
 
-        EvidenceScoreResponseDto result = service.calculateEvidenceScore(1L);
+        EvidenceScoreResponseDto result = service.calculateEvidenceScore(RELEASE_ID);
 
         assertNotNull(result);
         assertEquals(100, result.getScore());
-        assertEquals(1L, result.getReleaseId());
+        assertEquals(RELEASE_ID, result.getReleaseId());
     }
 
     @Test
     void calculateEvidenceScoreDeveRetornar5QuandoSemEvidenceUrlNoDev() {
         Release release = releaseComStatus(StatusEnum.CREATED, EnvironmentEnum.DEV);
         release.setEvidenceUrl(null);
-        when(releaseRepository.findById(1L)).thenReturn(Optional.of(release));
+        when(releaseRepository.findById(RELEASE_ID)).thenReturn(Optional.of(release));
 
-        EvidenceScoreResponseDto result = service.calculateEvidenceScore(1L);
+        EvidenceScoreResponseDto result = service.calculateEvidenceScore(RELEASE_ID);
 
         assertNotNull(result);
         assertEquals(5, result.getScore());
@@ -242,9 +247,9 @@ class ReleaseServiceImplTest {
 
     @Test
     void calculateEvidenceScoreDeveFalharQuandoNaoEncontrarRelease() {
-        when(releaseRepository.findById(1L)).thenReturn(Optional.empty());
+        when(releaseRepository.findById(RELEASE_ID)).thenReturn(Optional.empty());
 
-        EntityNotFoundException ex = assertThrows(EntityNotFoundException.class, () -> service.calculateEvidenceScore(1L));
+        EntityNotFoundException ex = assertThrows(EntityNotFoundException.class, () -> service.calculateEvidenceScore(RELEASE_ID));
         assertNotNull(ex);
     }
 
@@ -252,15 +257,44 @@ class ReleaseServiceImplTest {
     void calculateEvidenceScoreDeveAplicarPontuacaoDeterministicaIntermediaria() {
         Release release = releaseComStatus(StatusEnum.PENDING_PREPROD, EnvironmentEnum.PREPROD);
         release.setEvidenceUrl("https://example.com/evidence/run-42");
-        when(releaseRepository.findById(1L)).thenReturn(Optional.of(release));
+        when(releaseRepository.findById(RELEASE_ID)).thenReturn(Optional.of(release));
 
-        EvidenceScoreResponseDto result = service.calculateEvidenceScore(1L);
+        EvidenceScoreResponseDto result = service.calculateEvidenceScore(RELEASE_ID);
 
         assertNotNull(result);
         assertEquals(72, result.getScore());
     }
 
+    @Test
+    void updateEvidenceUrlDeveAtualizarReleaseQuandoValida() {
+        Release release = releaseComStatus(StatusEnum.CREATED, EnvironmentEnum.DEV);
+        when(releaseRepository.findById(RELEASE_ID)).thenReturn(Optional.of(release));
+        when(releaseRepository.saveAndFlush(release)).thenReturn(release);
+
+        ReleaseEvidenceUpdateRequestDto request = ReleaseEvidenceUpdateRequestDto.builder()
+                .evidenceUrl("https://example.com/new-evidence")
+                .build();
+
+        ReleaseResponseDto result = service.updateEvidenceUrl(RELEASE_ID, request);
+
+        assertNotNull(result);
+        assertEquals("https://example.com/new-evidence", release.getEvidenceUrl());
+        verify(releaseRepository).saveAndFlush(release);
+    }
+
+    @Test
+    void updateEvidenceUrlDeveFalharQuandoEvidenceUrlVazia() {
+        ReleaseEvidenceUpdateRequestDto request = ReleaseEvidenceUpdateRequestDto.builder()
+                .evidenceUrl(" ")
+                .build();
+
+        BusinessException ex = assertThrows(BusinessException.class, () -> service.updateEvidenceUrl(RELEASE_ID, request));
+
+        assertNotNull(ex);
+        verify(releaseRepository, never()).saveAndFlush(any(Release.class));
+    }
+
     private static Release releaseComStatus(final StatusEnum status, final EnvironmentEnum env) {
-        return Release.builder().id(1L).status(status).env(env).build();
+        return Release.builder().id(RELEASE_ID).status(status).env(env).build();
     }
 }

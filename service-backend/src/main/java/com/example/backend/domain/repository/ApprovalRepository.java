@@ -3,6 +3,7 @@ package com.example.backend.domain.repository;
 import com.example.backend.domain.entity.Approval;
 import com.example.backend.domain.entity.OutcomeEnum;
 import java.util.List;
+import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -11,7 +12,7 @@ import org.springframework.stereotype.Repository;
  * Repositório para a entidade Approval.
  */
 @Repository
-public interface ApprovalRepository extends JpaRepository<Approval, Long> {
+public interface ApprovalRepository extends JpaRepository<Approval, UUID> {
 
     /**
      * Busca aprovações por ID da release.
@@ -19,7 +20,7 @@ public interface ApprovalRepository extends JpaRepository<Approval, Long> {
      * @param releaseId ID da release
      * @return Lista de aprovações para a release
      */
-    List<Approval> findByReleaseId(Long releaseId);
+    List<Approval> findByReleaseId(UUID releaseId);
 
     /**
      * Busca aprovações por email do aprovador.

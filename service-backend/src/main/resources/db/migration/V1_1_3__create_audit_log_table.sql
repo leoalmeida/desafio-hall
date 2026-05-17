@@ -1,0 +1,9 @@
+CREATE TABLE IF NOT EXISTS AUDITLOG (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    actor VARCHAR(255) NOT NULL,
+    action VARCHAR(255) NOT NULL,
+    entity VARCHAR(255) NOT NULL,
+    entity_id VARCHAR(255),
+    payload JSONB,
+    timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

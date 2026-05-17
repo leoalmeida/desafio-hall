@@ -9,6 +9,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.io.Serial;
+import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -32,11 +33,11 @@ public class Approval {
     private static final int MAX_OUTCOME_LENGTH = 50;
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
     @Column(name = "release_id", nullable = false)
-    private Long releaseId;
+    private UUID releaseId;
 
     @Column(name = "approver_email", nullable = false, length = MAX_EMAIL_LENGTH)
     private String approverEmail;

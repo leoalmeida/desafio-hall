@@ -102,6 +102,15 @@ Configuracao padrao em `service-backend/src/main/resources/application.propertie
 - `spring.datasource.password=${DB_PASSWORD:postgres}`
 - `security.jwt.secret=${JWT_SECRET:changeit-changeit-changeit-changeit}`
 
+Migrations Flyway iniciais em `service-backend/src/main/resources/db/migration`:
+
+- `V1_1_0__create_application_table.sql`: cria `APPLICATION`
+- `V1_1_0_1__create_release_table.sql`: cria `RELEASE`
+- `V1_1_0_2__create_approval_table.sql`: cria `APPROVAL`
+- `V1_1_0_3__create_audit_log_table.sql`: cria `AUDITLOG`
+
+As entidades principais do backend (`APPLICATION`, `RELEASE`, `APPROVAL`, `AUDITLOG` e `IDEMPOTENCY_RECORD`) usam `UUID` como identificador primário. Filtros e path params como `applicationId`, `releaseId` e `{id}` seguem esse mesmo formato.
+
 Recursos de observabilidade e documentacao:
 
 - Swagger UI: `http://localhost:8081/swagger-ui.html`
@@ -256,12 +265,23 @@ O gateway encaminha as chamadas para o `service-backend` em `http://localhost:80
 - `POST /releases/{id}/approve`
 - `POST /releases/{id}/disapprove`
 - `POST /releases/{id}/promote`
+- `PATCH /releases/{id}/evidence-url`
 - `GET /releases/{id}/evidence-score`
+
+Observações do endpoint de promoção:
+
+- suporta header `Idempotency-Key` para deduplicação de reenvios
+- reenvio com mesma chave já concluída retorna o mesmo efeito sem duplicar auditoria
+- chave em processamento ou conflito concorrente retorna `409`
 - `GET /approvals`
 - `GET /approvals/approver?aprovador=...`
-- `GET /approvals/release?releaseId=...`
+- `GET /approvals/release?releaseId=<uuid>`
 - `GET /approvals/outcome?outcome=...`
 - `GET /audit`
+- `GET /audit?ator=...`
+- `GET /audit?acao=...`
+- `GET /audit?entidade=...`
+- `GET /audit?dataInicio=...&dataFim=...`
 - `GET /audit/actor?ator=...`
 - `GET /audit/action?acao=...`
 - `GET /audit/entity?entidade=...`
@@ -296,10 +316,16 @@ Permissões efetivas considerando Gateway + Backend:
 | `/api/releases/{id}/approve` | `POST` | Sim | Sim | Nao |
 | `/api/releases/{id}/disapprove` | `POST` | Sim | Sim | Nao |
 | `/api/releases/{id}/promote` | `POST` | Sim | Nao | Nao |
+| `/api/releases/{id}/evidence-url` | `PATCH` | Sim | Nao | Nao |
 | `/api/releases/{id}/evidence-score` | `GET` | Sim | Sim | Sim |
 | `/api/approvals` e filtros | `GET` | Sim | Sim | Nao |
 | `/api/audit` e filtros | `GET/POST` | Sim | Nao | Nao |
 | `/api/users` | `GET/POST/PUT/DELETE` | Sim | Nao | Nao |
+
+Observações de auditoria:
+
+- ações relevantes auditadas: `CREATE`, `APPROVE`, `DISAPPROVE`, `PROMOTE`, `CHANGE_EVIDENCE_URL`
+- `GET /api/audit` aceita filtros opcionais por query string: `ator`, `acao`, `entidade`, `dataInicio`, `dataFim`
 
 ## Docker
 

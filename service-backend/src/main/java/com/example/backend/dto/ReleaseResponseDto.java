@@ -2,6 +2,7 @@ package com.example.backend.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Size;
+import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -21,11 +22,11 @@ import lombok.ToString;
 @ToString
 public class ReleaseResponseDto {
 
-    @Schema(description = "Identificador único da release", example = "1")
-    private Long id;
+    @Schema(description = "Identificador único da release", example = "10000000-0000-0000-0000-000000000001")
+    private UUID id;
 
-    @Schema(description = "ID da aplicação", example = "1")
-    private Long applicationId;
+    @Schema(description = "ID da aplicação", example = "00000000-0000-0000-0000-000000000001")
+    private UUID applicationId;
 
     @Schema(description = "Versão da release", example = "1.0.0")
     @Size(max = DtoConstants.MAX_VERSION_LENGTH, message = "Versão deve ter no máximo 50 caracteres")

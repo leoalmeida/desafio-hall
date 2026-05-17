@@ -4,6 +4,7 @@ import com.example.backend.domain.entity.Release;
 import com.example.backend.domain.entity.EnvironmentEnum;
 import com.example.backend.domain.entity.StatusEnum;
 import java.util.List;
+import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -12,7 +13,7 @@ import org.springframework.stereotype.Repository;
  * Repositório para a entidade Release.
  */
 @Repository
-public interface ReleaseRepository extends JpaRepository<Release, Long> {
+public interface ReleaseRepository extends JpaRepository<Release, UUID> {
 
     /**
      * Busca releases por applicationId, version, ambiente e status.
@@ -27,5 +28,5 @@ public interface ReleaseRepository extends JpaRepository<Release, Long> {
             + "AND r.version = :version "
             + "AND r.env = :env "
             + "AND r.status = :status")
-        List<Release> findRelease(Long applicationId, String version, EnvironmentEnum env, StatusEnum status);
+        List<Release> findRelease(UUID applicationId, String version, EnvironmentEnum env, StatusEnum status);
 }

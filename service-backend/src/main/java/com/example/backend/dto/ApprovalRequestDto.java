@@ -2,10 +2,10 @@ package com.example.backend.dto;
 
 import com.example.backend.domain.entity.OutcomeEnum;
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -25,10 +25,9 @@ import lombok.ToString;
 @ToString
 public class ApprovalRequestDto {
 
-    @Schema(description = "ID da release", example = "1")
-    @Min(value = DtoConstants.MIN_ID_VALUE, message = "ID da release deve ser um número positivo")
+    @Schema(description = "ID da release", example = "10000000-0000-0000-0000-000000000001")
     @NotNull(message = "ID da release é obrigatório")
-    private Long releaseId;
+    private UUID releaseId;
 
     @Schema(description = "Email do aprovador", example = "approver@example.com")
     @NotBlank(message = "Email do aprovador é obrigatório")

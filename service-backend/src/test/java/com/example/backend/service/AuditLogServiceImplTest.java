@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,11 +23,19 @@ import com.example.backend.domain.repository.AuditLogRepository;
 import com.example.backend.dto.AuditLogRequestDto;
 import com.example.backend.dto.AuditLogResponseDto;
 import com.example.backend.exception.BusinessException;
-import com.example.backend.exception.EntityNotFoundException;
 import com.example.backend.service.impl.AuditLogServiceImpl;
+
+import jakarta.persistence.EntityNotFoundException;
 
 @ExtendWith(MockitoExtension.class)
 class AuditLogServiceImplTest {
+
+    private static final UUID AUDIT_LOG_ID = UUID.fromString("30000000-0000-0000-0000-000000000001");
+    private static final UUID AUDIT_LOG_ID_2 = UUID.fromString("30000000-0000-0000-0000-000000000002");
+    private static final UUID AUDIT_LOG_ID_5 = UUID.fromString("30000000-0000-0000-0000-000000000005");
+    private static final String RELEASE_ENTITY_ID = "10000000-0000-0000-0000-000000000001";
+    private static final String APPLICATION_ENTITY_ID = "00000000-0000-0000-0000-000000000003";
+    private static final String RELEASE_ENTITY_ID_7 = "10000000-0000-0000-0000-000000000007";
 
     @Mock
     private AuditLogRepository repository;
@@ -51,16 +60,16 @@ class AuditLogServiceImplTest {
                 .actor("admin@example.com")
                 .action("CREATE")
                 .entity("Release")
-                .entityId(1)
+            .entityId(RELEASE_ENTITY_ID)
                 .payload("{\"version\":\"V1.0\"}")
                 .build();
 
         AuditLog saved = AuditLog.builder()
-                .id(5L)
+            .id(AUDIT_LOG_ID_5)
                 .actor("admin@example.com")
                 .action("CREATE")
                 .entity("Release")
-                .entityId(1)
+            .entityId(RELEASE_ENTITY_ID)
                 .payload("{\"version\":\"V1.0\"}")
                 .timestamp(LocalDateTime.now())
                 .build();
@@ -70,7 +79,7 @@ class AuditLogServiceImplTest {
         AuditLogResponseDto response = service.create(dto);
 
         assertNotNull(response);
-        assertEquals(5L, response.getId());
+        assertEquals(AUDIT_LOG_ID_5, response.getId());
         assertEquals("admin@example.com", response.getActor());
         assertEquals("CREATE", response.getAction());
         verify(repository).saveAndFlush(any(AuditLog.class));
@@ -84,34 +93,35 @@ class AuditLogServiceImplTest {
     }
 
     @Test
-    void findByIdDeveThrowIllegalArgumentExceptionQuandoIdZero() {
-        assertThrows(IllegalArgumentException.class, () -> service.findById(0L));
+    void findByIdDeveThrowIllegalArgumentExceptionQuandoIdAusente() {
+        assertThrows(IllegalArgumentException.class, () -> service.findById(null));
     }
 
     @Test
     void findByIdDeveThrowEntityNotFoundExceptionQuandoNaoExistir() {
-        when(repository.findById(99L)).thenReturn(Optional.empty());
+        UUID missingAuditLogId = UUID.fromString("30000000-0000-0000-0000-000000000099");
+        when(repository.findById(missingAuditLogId)).thenReturn(Optional.empty());
 
-        assertThrows(EntityNotFoundException.class, () -> service.findById(99L));
+        assertThrows(EntityNotFoundException.class, () -> service.findById(missingAuditLogId));
     }
 
     @Test
     void findByIdDeveRetornarDtoQuandoExistir() throws EntityNotFoundException {
         AuditLog log = AuditLog.builder()
-                .id(1L)
+                .id(AUDIT_LOG_ID)
                 .actor("user@example.com")
                 .action("UPDATE")
                 .entity("Application")
-                .entityId(3)
+                .entityId(APPLICATION_ENTITY_ID)
                 .timestamp(LocalDateTime.now())
                 .build();
 
-        when(repository.findById(1L)).thenReturn(Optional.of(log));
+        when(repository.findById(AUDIT_LOG_ID)).thenReturn(Optional.of(log));
 
-        AuditLogResponseDto response = service.findById(1L);
+        AuditLogResponseDto response = service.findById(AUDIT_LOG_ID);
 
         assertNotNull(response);
-        assertEquals(1L, response.getId());
+        assertEquals(AUDIT_LOG_ID, response.getId());
         assertEquals("UPDATE", response.getAction());
     }
 
@@ -130,11 +140,11 @@ class AuditLogServiceImplTest {
     @Test
     void findByActorDeveRetornarRegistrosDoAtor() throws BusinessException {
         AuditLog log = AuditLog.builder()
-                .id(1L)
+                .id(AUDIT_LOG_ID)
                 .actor("admin@example.com")
                 .action("DELETE")
                 .entity("Release")
-                .entityId(7)
+                .entityId(RELEASE_ENTITY_ID_7)
                 .timestamp(LocalDateTime.now())
                 .build();
 
@@ -156,11 +166,11 @@ class AuditLogServiceImplTest {
     @Test
     void findByActionDeveRetornarRegistrosDaAcao() throws BusinessException {
         AuditLog log = AuditLog.builder()
-                .id(2L)
+                .id(AUDIT_LOG_ID_2)
                 .actor("u@x.com")
                 .action("CREATE")
                 .entity("Application")
-                .entityId(1)
+                .entityId("00000000-0000-0000-0000-000000000001")
                 .timestamp(LocalDateTime.now())
                 .build();
 

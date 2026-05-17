@@ -2,6 +2,7 @@ package com.example.backend.rest;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -114,13 +115,14 @@ public class ApplicationResource {
         @PutMapping(path = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
         @PreAuthorize("hasRole('ADMIN')")
         public ResponseEntity<ApplicationResponseDto> putApplication(
-                        @Parameter(description = "ID único da aplicação a atualizar", required = true, example = "1")
-                        @PathVariable final Long id,
+                        @Parameter(description = "ID único da aplicação a atualizar", required = true,
+                                example = "00000000-0000-0000-0000-000000000001")
+                        @PathVariable final UUID id,
                         @Parameter(description = "Novos dados da aplicação", required = true)
                         @RequestBody final ApplicationRequestDto application) {
 
                 auditLogManager.logAction(SecurityContextUtils.getCurrentUserEmail(), "PUT", "Application",
-                                id.intValue(), auditLogManager.toJsonNode(application));
+                                id.toString(), auditLogManager.toJsonNode(application));
                 ApplicationResponseDto updApplication = applicationService.update(id, application, true);
                 log.info("Aplicação atualizada: {}", updApplication);
                 return ResponseEntity.status(HttpStatus.OK)
@@ -143,12 +145,13 @@ public class ApplicationResource {
         @PatchMapping(path = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
         @PreAuthorize("hasRole('ADMIN')")
         public ResponseEntity<ApplicationResponseDto> patchApplication(
-                        @Parameter(description = "ID único da aplicação a atualizar", required = true, example = "1")
-                        @PathVariable final Long id,
+                        @Parameter(description = "ID único da aplicação a atualizar", required = true,
+                                example = "00000000-0000-0000-0000-000000000001")
+                        @PathVariable final UUID id,
                         @Parameter(description = "Novos dados da aplicação", required = true)
                         @RequestBody final ApplicationRequestDto application) {
                 auditLogManager.logAction(SecurityContextUtils.getCurrentUserEmail(), "PATCH", "Application",
-                                id.intValue(), auditLogManager.toJsonNode(application));
+                                id.toString(), auditLogManager.toJsonNode(application));
                 ApplicationResponseDto updApplication = applicationService.update(id, application, false);
                 log.info("Aplicação atualizada: {}", updApplication);
                 return ResponseEntity.status(HttpStatus.OK)

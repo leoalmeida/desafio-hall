@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.List;
+import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,6 +33,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 @WebMvcTest(controllers = AuditLogResource.class)
 @Import({SecurityConfig.class, JwtAuthenticationFilter.class})
 class AuditLogResourceWebMvcTest {
+
+        private static final UUID AUDIT_LOG_ID_1 = UUID.fromString("30000000-0000-0000-0000-000000000001");
+        private static final UUID AUDIT_LOG_ID_3 = UUID.fromString("30000000-0000-0000-0000-000000000003");
+        private static final UUID AUDIT_LOG_ID_4 = UUID.fromString("30000000-0000-0000-0000-000000000004");
+        private static final UUID AUDIT_LOG_ID_5 = UUID.fromString("30000000-0000-0000-0000-000000000005");
+        private static final UUID AUDIT_LOG_ID_6 = UUID.fromString("30000000-0000-0000-0000-000000000006");
+        private static final UUID AUDIT_LOG_ID_7 = UUID.fromString("30000000-0000-0000-0000-000000000007");
+        private static final String RELEASE_ID = "10000000-0000-0000-0000-000000000001";
 
     @Autowired
     private MockMvc mockMvc;
@@ -63,13 +72,13 @@ class AuditLogResourceWebMvcTest {
         when(jwtService.extractRole(VALID_TOKEN)).thenReturn("USER");
     }
 
-    private AuditLogResponseDto buildLogDto(final Long id) {
+        private AuditLogResponseDto buildLogDto(final UUID id) {
         return AuditLogResponseDto.builder()
                 .id(id)
                 .actor("admin@test.com")
                 .action("CREATE")
                 .entity("Release")
-                .entityId(1)
+                                .entityId(RELEASE_ID)
                 .timestamp("2026-01-01T12:00:00")
                 .build();
     }
@@ -97,15 +106,42 @@ class AuditLogResourceWebMvcTest {
     @Test
     void findAllDeveRetornar200ComTokenAdmin() throws Exception {
         mockAdminToken();
-        when(auditLogService.findAll()).thenReturn(List.of(buildLogDto(1L)));
+        when(auditLogService.findAll()).thenReturn(List.of(buildLogDto(AUDIT_LOG_ID_1)));
 
         mockMvc.perform(get("/api/audit").header(HttpHeaders.AUTHORIZATION, AUTH_HEADER))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(1))
+                .andExpect(jsonPath("$[0].id").value(AUDIT_LOG_ID_1.toString()))
                 .andExpect(jsonPath("$[0].action").value("CREATE"));
 
         verify(auditLogService).findAll();
     }
+
+        @Test
+        void findAllDeveAplicarFiltroPorAcaoNaRotaRaiz() throws Exception {
+                mockAdminToken();
+                when(auditLogService.findByAction("CREATE"))
+                                .thenReturn(List.of(buildLogDto(AUDIT_LOG_ID_7)));
+
+                mockMvc.perform(get("/api/audit")
+                                                .header(HttpHeaders.AUTHORIZATION, AUTH_HEADER)
+                                                .param("acao", "CREATE"))
+                                .andExpect(status().isOk())
+                                                .andExpect(jsonPath("$[0].id").value(AUDIT_LOG_ID_7.toString()))
+                                .andExpect(jsonPath("$[0].action").value("CREATE"));
+
+                verify(auditLogService).findByAction("CREATE");
+        }
+
+        @Test
+        void findAllDeveRetornar400QuandoIntervaloVierIncompletoNaRotaRaiz() throws Exception {
+                mockAdminToken();
+
+                mockMvc.perform(get("/api/audit")
+                                                .header(HttpHeaders.AUTHORIZATION, AUTH_HEADER)
+                                                .param("dataInicio", "2026-01-01T00:00:00"))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.code").value("INVALID_ARGUMENT"));
+        }
 
     // --- GET /api/audit/actor ---
 
@@ -113,7 +149,7 @@ class AuditLogResourceWebMvcTest {
     void findByActorDeveRetornar200ComTokenAdmin() throws Exception {
         mockAdminToken();
         when(auditLogService.findByActor("admin@test.com"))
-                .thenReturn(List.of(buildLogDto(2L)));
+                                .thenReturn(List.of(buildLogDto(UUID.fromString("30000000-0000-0000-0000-000000000002"))));
 
         mockMvc.perform(get("/api/audit/actor")
                         .header(HttpHeaders.AUTHORIZATION, AUTH_HEADER)
@@ -140,7 +176,7 @@ class AuditLogResourceWebMvcTest {
     void findByActionDeveRetornar200ComTokenAdmin() throws Exception {
         mockAdminToken();
         when(auditLogService.findByAction("CREATE"))
-                .thenReturn(List.of(buildLogDto(3L)));
+                                .thenReturn(List.of(buildLogDto(AUDIT_LOG_ID_3)));
 
         mockMvc.perform(get("/api/audit/action")
                         .header(HttpHeaders.AUTHORIZATION, AUTH_HEADER)
@@ -167,7 +203,7 @@ class AuditLogResourceWebMvcTest {
     void findByEntityDeveRetornar200ComTokenAdmin() throws Exception {
         mockAdminToken();
         when(auditLogService.findByEntity("Release"))
-                .thenReturn(List.of(buildLogDto(4L)));
+                                .thenReturn(List.of(buildLogDto(AUDIT_LOG_ID_4)));
 
         mockMvc.perform(get("/api/audit/entity")
                         .header(HttpHeaders.AUTHORIZATION, AUTH_HEADER)
@@ -196,7 +232,7 @@ class AuditLogResourceWebMvcTest {
                 .actor("admin@test.com")
                 .action("CREATE")
                 .entity("Release")
-                .entityId(1)
+                                .entityId(RELEASE_ID)
                 .build();
 
         mockMvc.perform(post("/api/audit")
@@ -212,7 +248,7 @@ class AuditLogResourceWebMvcTest {
                 .actor("admin@test.com")
                 .action("CREATE")
                 .entity("Release")
-                .entityId(1)
+                                .entityId(RELEASE_ID)
                 .build();
 
         mockMvc.perform(post("/api/audit")
@@ -231,10 +267,10 @@ class AuditLogResourceWebMvcTest {
                 .actor("admin@test.com")
                 .action("CREATE")
                 .entity("Release")
-                .entityId(1)
+                .entityId(RELEASE_ID)
                 .payload("{\"version\":\"V1.0\"}")
                 .build();
-        AuditLogResponseDto response = buildLogDto(5L);
+        AuditLogResponseDto response = buildLogDto(AUDIT_LOG_ID_5);
         when(auditLogService.create(any(AuditLogRequestDto.class))).thenReturn(response);
 
         mockMvc.perform(post("/api/audit")
@@ -242,7 +278,7 @@ class AuditLogResourceWebMvcTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").value(5));
+                .andExpect(jsonPath("$.id").value(AUDIT_LOG_ID_5.toString()));
 
         verify(auditLogService).create(any(AuditLogRequestDto.class));
     }
@@ -253,14 +289,14 @@ class AuditLogResourceWebMvcTest {
     void findByDateRangeDeveRetornar200ComTokenAdmin() throws Exception {
         mockAdminToken();
         when(auditLogService.findByDateRange(any(), any()))
-                .thenReturn(List.of(buildLogDto(6L)));
+                                .thenReturn(List.of(buildLogDto(AUDIT_LOG_ID_6)));
 
         mockMvc.perform(get("/api/audit/interval")
                         .header(HttpHeaders.AUTHORIZATION, AUTH_HEADER)
                         .param("dataInicio", "2026-01-01T00:00:00")
                         .param("dataFim", "2026-01-31T23:59:59"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(6));
+                .andExpect(jsonPath("$[0].id").value(AUDIT_LOG_ID_6.toString()));
 
         verify(auditLogService).findByDateRange(any(), any());
     }

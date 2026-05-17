@@ -7,6 +7,7 @@ import com.example.backend.exception.BusinessException;
 import jakarta.persistence.EntityNotFoundException;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 import lombok.NonNull;
 
 /**
@@ -28,7 +29,7 @@ public interface AuditLogService {
      * @param id ID do registro
      * @return AuditLog encontrado
      */
-    AuditLogResponseDto findById(@NonNull Long id) throws EntityNotFoundException;
+    AuditLogResponseDto findById(@NonNull UUID id) throws EntityNotFoundException;
 
     /**
      * Busca registros por ator.

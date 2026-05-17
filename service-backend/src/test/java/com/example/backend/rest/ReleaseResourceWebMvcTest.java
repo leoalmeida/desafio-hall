@@ -1,7 +1,6 @@
 package com.example.backend.rest;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
@@ -13,6 +12,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.List;
+import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +21,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.example.backend.config.SecurityConfig;
@@ -29,17 +30,21 @@ import com.example.backend.domain.entity.OutcomeEnum;
 import com.example.backend.domain.entity.StatusEnum;
 import com.example.backend.dto.ReleaseRequestDto;
 import com.example.backend.dto.ReleaseResponseDto;
-import com.example.backend.dto.EvidenceScoreResponseDto;
 import com.example.backend.exception.BusinessException;
-import com.example.backend.security.AuditLogManager;
 import com.example.backend.security.JwtAuthenticationFilter;
 import com.example.backend.security.JwtService;
+import com.example.backend.service.ReleaseAuditService;
+import com.example.backend.service.ReleasePromotionCoordinator;
 import com.example.backend.service.ReleaseService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 @WebMvcTest(controllers = ReleaseResource.class)
 @Import({SecurityConfig.class, JwtAuthenticationFilter.class})
 class ReleaseResourceWebMvcTest {
+
+        private static final UUID APPLICATION_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        private static final UUID RELEASE_ID = UUID.fromString("10000000-0000-0000-0000-000000000001");
+        private static final UUID RELEASE_ID_10 = UUID.fromString("10000000-0000-0000-0000-000000000010");
 
     @Autowired
     private MockMvc mockMvc;
@@ -51,7 +56,10 @@ class ReleaseResourceWebMvcTest {
     private ReleaseService releaseService;
 
     @MockBean
-    private AuditLogManager auditLogManager;
+        private ReleaseAuditService releaseAuditService;
+
+        @MockBean
+        private ReleasePromotionCoordinator releasePromotionCoordinator;
 
     @MockBean
     private JwtService jwtService;
@@ -76,36 +84,36 @@ class ReleaseResourceWebMvcTest {
     @Test
     void findDeveRetornar401SemToken() throws Exception {
         mockMvc.perform(get("/api/releases")
-                        .param("applicationId", "1")
+                                                .param("applicationId", APPLICATION_ID.toString())
                         .param("version", "V1.0")
                         .param("environment", "PROD")
                         .param("status", "CREATED"))
                 .andExpect(status().isUnauthorized());
 
-        verify(releaseService, never()).find(anyLong(), any(), any(), any());
+                verify(releaseService, never()).find(any(UUID.class), any(), any(), any());
     }
 
     @Test
     void findDeveRetornar200ComTokenUser() throws Exception {
         mockUserToken();
         ReleaseResponseDto dto = ReleaseResponseDto.builder()
-                .id(1L)
-                .applicationId(1L)
+                .id(RELEASE_ID)
+                .applicationId(APPLICATION_ID)
                 .version("V1.0")
                 .env("PROD")
                 .status("CREATED")
                 .build();
-        when(releaseService.find(eq(1L), eq("V1.0"), eq(EnvironmentEnum.PROD), eq(StatusEnum.CREATED)))
+        when(releaseService.find(eq(APPLICATION_ID), eq("V1.0"), eq(EnvironmentEnum.PROD), eq(StatusEnum.CREATED)))
                 .thenReturn(List.of(dto));
 
         mockMvc.perform(get("/api/releases")
                         .header(HttpHeaders.AUTHORIZATION, AUTH_HEADER)
-                        .param("applicationId", "1")
+                        .param("applicationId", APPLICATION_ID.toString())
                         .param("version", "V1.0")
                         .param("environment", "PROD")
                         .param("status", "CREATED"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(1))
+                .andExpect(jsonPath("$[0].id").value(RELEASE_ID.toString()))
                 .andExpect(jsonPath("$[0].version").value("V1.0"));
     }
 
@@ -114,7 +122,7 @@ class ReleaseResourceWebMvcTest {
     @Test
     void createDeveRetornar401SemToken() throws Exception {
         ReleaseRequestDto request = ReleaseRequestDto.builder()
-                .applicationId(1L)
+                                .applicationId(APPLICATION_ID)
                 .version("V1.0")
                 .env(EnvironmentEnum.PROD)
                 .status(StatusEnum.CREATED)
@@ -130,7 +138,7 @@ class ReleaseResourceWebMvcTest {
     void createDeveRetornar403ComTokenUser() throws Exception {
         mockUserToken();
         ReleaseRequestDto request = ReleaseRequestDto.builder()
-                .applicationId(1L)
+                                .applicationId(APPLICATION_ID)
                 .version("V1.0")
                 .env(EnvironmentEnum.PROD)
                 .status(StatusEnum.CREATED)
@@ -149,15 +157,15 @@ class ReleaseResourceWebMvcTest {
     void createDeveRetornar201ComTokenAdmin() throws Exception {
         mockAdminToken();
         ReleaseRequestDto request = ReleaseRequestDto.builder()
-                .applicationId(1L)
+                .applicationId(APPLICATION_ID)
                 .version("V1.0")
                 .env(EnvironmentEnum.PROD)
                 .status(StatusEnum.CREATED)
                 .evidenceUrl("https://evidence.example.com")
                 .build();
         ReleaseResponseDto response = ReleaseResponseDto.builder()
-                .id(10L)
-                .applicationId(1L)
+                .id(RELEASE_ID_10)
+                .applicationId(APPLICATION_ID)
                 .version("V1.0")
                 .env("PROD")
                 .status("CREATED")
@@ -169,7 +177,7 @@ class ReleaseResourceWebMvcTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").value(10));
+                .andExpect(jsonPath("$.id").value(RELEASE_ID_10.toString()));
 
         verify(releaseService).create(any(ReleaseRequestDto.class));
     }
@@ -180,22 +188,22 @@ class ReleaseResourceWebMvcTest {
     void approveDeveRetornar403ComTokenUser() throws Exception {
         mockUserToken();
 
-        mockMvc.perform(post("/api/releases/1/approve")
+                mockMvc.perform(post("/api/releases/" + RELEASE_ID + "/approve")
                         .header(HttpHeaders.AUTHORIZATION, AUTH_HEADER))
                 .andExpect(status().isForbidden());
 
-        verify(releaseService, never()).approveRelease(anyLong(), any(OutcomeEnum.class));
+                verify(releaseService, never()).approveRelease(any(UUID.class), any(OutcomeEnum.class));
     }
 
     @Test
     void approveDeveRetornar204ComTokenAdmin() throws Exception {
         mockAdminToken();
 
-        mockMvc.perform(post("/api/releases/1/approve")
+                mockMvc.perform(post("/api/releases/" + RELEASE_ID + "/approve")
                         .header(HttpHeaders.AUTHORIZATION, AUTH_HEADER))
                 .andExpect(status().isNoContent());
 
-        verify(releaseService).approveRelease(1L, OutcomeEnum.APPROVED);
+                verify(releaseService).approveRelease(RELEASE_ID, OutcomeEnum.APPROVED);
     }
 
     // --- POST /api/releases/{id}/disapprove ---
@@ -204,18 +212,18 @@ class ReleaseResourceWebMvcTest {
     void disapproveDeveRetornar204ComTokenAdmin() throws Exception {
         mockAdminToken();
 
-        mockMvc.perform(post("/api/releases/1/disapprove")
+                mockMvc.perform(post("/api/releases/" + RELEASE_ID + "/disapprove")
                         .header(HttpHeaders.AUTHORIZATION, AUTH_HEADER))
                 .andExpect(status().isNoContent());
 
-        verify(releaseService).approveRelease(1L, OutcomeEnum.REJECTED);
+                verify(releaseService).approveRelease(RELEASE_ID, OutcomeEnum.REJECTED);
     }
 
     @Test
     void disapproveDeveRetornar403ComTokenUser() throws Exception {
         mockUserToken();
 
-        mockMvc.perform(post("/api/releases/1/disapprove")
+                mockMvc.perform(post("/api/releases/" + RELEASE_ID + "/disapprove")
                         .header(HttpHeaders.AUTHORIZATION, AUTH_HEADER))
                 .andExpect(status().isForbidden());
     }
@@ -226,56 +234,87 @@ class ReleaseResourceWebMvcTest {
     void promoteDeveRetornar204ComTokenAdmin() throws Exception {
         mockAdminToken();
 
-        mockMvc.perform(post("/api/releases/1/promote")
+                mockMvc.perform(post("/api/releases/" + RELEASE_ID + "/promote")
                         .header(HttpHeaders.AUTHORIZATION, AUTH_HEADER))
                 .andExpect(status().isNoContent());
 
-        verify(releaseService).promoteRelease(1L);
+                verify(releasePromotionCoordinator).promote(RELEASE_ID, null);
+    }
+
+    @Test
+    void promoteDeveRetornar204SemDuplicarQuandoIdempotencyKeyJaConcluida() throws Exception {
+        mockAdminToken();
+
+                mockMvc.perform(post("/api/releases/" + RELEASE_ID + "/promote")
+                        .header(HttpHeaders.AUTHORIZATION, AUTH_HEADER)
+                        .header("Idempotency-Key", "key-1"))
+                .andExpect(status().isNoContent());
+
+                verify(releasePromotionCoordinator).promote(RELEASE_ID, "key-1");
+    }
+
+    @Test
+    void promoteDeveRetornar409QuandoIdempotencyKeyEstiverEmProcessamento() throws Exception {
+        mockAdminToken();
+        doThrow(new org.springframework.web.server.ResponseStatusException(
+                org.springframework.http.HttpStatus.CONFLICT,
+                "Idempotency-Key já está em processamento"))
+                        .when(releasePromotionCoordinator)
+                        .promote(RELEASE_ID, "key-2");
+
+        mockMvc.perform(post("/api/releases/" + RELEASE_ID + "/promote")
+                        .header(HttpHeaders.AUTHORIZATION, AUTH_HEADER)
+                        .header("Idempotency-Key", "key-2"))
+                .andExpect(status().isConflict());
+
+        verify(releasePromotionCoordinator).promote(RELEASE_ID, "key-2");
+    }
+
+    @Test
+    void promoteDeveConcluirRegistroQuandoIdempotencyKeyForNova() throws Exception {
+        mockAdminToken();
+
+                mockMvc.perform(post("/api/releases/" + RELEASE_ID + "/promote")
+                        .header(HttpHeaders.AUTHORIZATION, AUTH_HEADER)
+                        .header("Idempotency-Key", "key-3"))
+                .andExpect(status().isNoContent());
+
+                verify(releasePromotionCoordinator).promote(RELEASE_ID, "key-3");
     }
 
     @Test
     void promoteDeveRetornar403ComTokenUser() throws Exception {
         mockUserToken();
 
-        mockMvc.perform(post("/api/releases/1/promote")
+                mockMvc.perform(post("/api/releases/" + RELEASE_ID + "/promote")
                         .header(HttpHeaders.AUTHORIZATION, AUTH_HEADER))
                 .andExpect(status().isForbidden());
     }
 
-        @Test
-        void promoteDeveRetornar422QuandoPolicyBloquearPromocao() throws Exception {
-                mockAdminToken();
-                doThrow(new BusinessException("Janela de freeze ativa para ambiente PROD"))
-                                .when(releaseService)
-                                .promoteRelease(1L);
-
-                mockMvc.perform(post("/api/releases/1/promote")
-                                                .header(HttpHeaders.AUTHORIZATION, AUTH_HEADER))
-                                .andExpect(status().isUnprocessableEntity())
-                                .andExpect(jsonPath("$.code").value("BUSINESS_ERROR"));
-    }
-
     @Test
-    void evidenceScoreDeveRetornar200ComTokenViewer() throws Exception {
-        mockUserToken();
-        EvidenceScoreResponseDto response = EvidenceScoreResponseDto.builder()
-                .releaseId(1L)
-                .score(88)
-                .evidenceUrl("https://ci.example.com/reports/rel-1?result=PASS")
-                .rationale("validUrl=true")
-                .build();
-        when(releaseService.calculateEvidenceScore(1L)).thenReturn(response);
+    void promoteDeveRetornar409QuandoHouverConcorrencia() throws Exception {
+        mockAdminToken();
+        doThrow(new ObjectOptimisticLockingFailureException("Release", RELEASE_ID))
+                .when(releasePromotionCoordinator)
+                .promote(RELEASE_ID, null);
 
-        mockMvc.perform(get("/api/releases/1/evidence-score")
+        mockMvc.perform(post("/api/releases/" + RELEASE_ID + "/promote")
                         .header(HttpHeaders.AUTHORIZATION, AUTH_HEADER))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.releaseId").value(1))
-                .andExpect(jsonPath("$.score").value(88));
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("CONFLICT"));
     }
 
     @Test
-    void evidenceScoreDeveRetornar401SemToken() throws Exception {
-        mockMvc.perform(get("/api/releases/1/evidence-score"))
-                .andExpect(status().isUnauthorized());
+    void promoteDeveRetornar422QuandoPolicyBloquearPromocao() throws Exception {
+        mockAdminToken();
+        doThrow(new BusinessException("Janela de freeze ativa para ambiente PROD"))
+                .when(releasePromotionCoordinator)
+                .promote(RELEASE_ID, null);
+
+        mockMvc.perform(post("/api/releases/" + RELEASE_ID + "/promote")
+                        .header(HttpHeaders.AUTHORIZATION, AUTH_HEADER))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("BUSINESS_ERROR"));
     }
+
 }

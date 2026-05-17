@@ -1,0 +1,12 @@
+CREATE TABLE IF NOT EXISTS RELEASE (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    application_id UUID NOT NULL,
+    version VARCHAR(50) NOT NULL,
+    env VARCHAR(50) NOT NULL,
+    status VARCHAR(50) NOT NULL,
+    evidence_url VARCHAR(255),
+    version_row INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deployed_at TIMESTAMP,
+    FOREIGN KEY (application_id) REFERENCES APPLICATION(id) ON DELETE CASCADE
+);

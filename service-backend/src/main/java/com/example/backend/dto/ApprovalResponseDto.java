@@ -2,6 +2,7 @@ package com.example.backend.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Size;
+import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -21,11 +22,11 @@ import lombok.ToString;
 @ToString
 public class ApprovalResponseDto {
 
-    @Schema(description = "Identificador único da aprovação", example = "1")
-    private Long id;
+    @Schema(description = "Identificador único da aprovação", example = "20000000-0000-0000-0000-000000000001")
+    private UUID id;
 
-    @Schema(description = "ID da release", example = "1")
-    private Long releaseId;
+    @Schema(description = "ID da release", example = "10000000-0000-0000-0000-000000000001")
+    private UUID releaseId;
 
     @Schema(description = "Email do aprovador", example = "approver@example.com")
     @Size(max = DtoConstants.MAX_EMAIL_LENGTH, message = "Email deve ter no máximo 255 caracteres")

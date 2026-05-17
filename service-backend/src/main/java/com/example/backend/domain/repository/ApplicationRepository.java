@@ -4,6 +4,7 @@ import com.example.backend.domain.entity.Application;
 import jakarta.persistence.LockModeType;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -14,7 +15,7 @@ import org.springframework.stereotype.Repository;
  * Repositório para a entidade Application.
  */
 @Repository
-public interface ApplicationRepository extends JpaRepository<Application, Long> {
+public interface ApplicationRepository extends JpaRepository<Application, UUID> {
 
     /**
      * Filtra aplicações por parte do nome usando filtro case-insensitive com LIKE.
@@ -27,5 +28,5 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT b FROM Application b WHERE b.id = :id")
-    Optional<Application> findByIdForUpdate(@Param("id") Long id);
+    Optional<Application> findByIdForUpdate(@Param("id") UUID id);
 }

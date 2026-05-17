@@ -9,6 +9,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -31,8 +32,8 @@ public class AuditLog {
     private static final int MAX_TEXT_LENGTH = 255;
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
     @Column(name = "actor", nullable = false, length = MAX_TEXT_LENGTH)
     private String actor;
@@ -43,8 +44,8 @@ public class AuditLog {
     @Column(name = "entity", nullable = false, length = MAX_TEXT_LENGTH)
     private String entity;
 
-    @Column(name = "entity_id", nullable = false)
-    private Integer entityId;
+    @Column(name = "entity_id", length = MAX_TEXT_LENGTH)
+    private String entityId;
 
     @Column(name = "payload", columnDefinition = "jsonb")
     private String payload;

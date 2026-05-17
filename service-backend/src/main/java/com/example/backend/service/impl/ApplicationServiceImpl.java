@@ -12,6 +12,7 @@ import jakarta.persistence.EntityNotFoundException;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import lombok.NonNull;
@@ -82,9 +83,9 @@ public class ApplicationServiceImpl implements ApplicationService {
     @Override
     @Transactional
     public ApplicationResponseDto update(
-            @NonNull final Long id, @NonNull final ApplicationRequestDto dto, @NonNull final Boolean isFullUpdate)
+            @NonNull final UUID id, @NonNull final ApplicationRequestDto dto, @NonNull final Boolean isFullUpdate)
             throws EntityNotFoundException, IllegalArgumentException, BusinessException {
-        if (id <= 0) {
+        if (id == null) {
             throw new IllegalArgumentException("Identificador inválido");
         }
         log.info("Atualizando dados da aplicação ID={} com os seguintes dados: {}", id, dto.toString());
@@ -115,9 +116,9 @@ public class ApplicationServiceImpl implements ApplicationService {
      */
     @Override
     @Transactional(readOnly = true)
-    public ApplicationResponseDto findById(@NonNull final Long id)
+    public ApplicationResponseDto findById(@NonNull final UUID id)
             throws EntityNotFoundException, IllegalArgumentException {
-        if (id <= 0) {
+        if (id == null) {
             throw new IllegalArgumentException("Identificador inválido");
         }
         return repository
@@ -163,9 +164,9 @@ public class ApplicationServiceImpl implements ApplicationService {
      */
     @Override
     @Transactional
-    public void delete(@NonNull final Long aplicacaoId)
+    public void delete(@NonNull final UUID aplicacaoId)
             throws BusinessException, IllegalArgumentException, EntityNotFoundException {
-        if (aplicacaoId <= 0) {
+        if (aplicacaoId == null) {
             throw new IllegalArgumentException("Identificador inválido para remoção.");
         }
 

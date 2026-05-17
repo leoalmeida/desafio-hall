@@ -6,11 +6,13 @@ import com.example.backend.domain.entity.StatusEnum;
 import com.example.backend.dto.ReleaseRequestDto;
 import com.example.backend.dto.ReleaseResponseDto;
 import com.example.backend.dto.EvidenceScoreResponseDto;
+import com.example.backend.dto.ReleaseEvidenceUpdateRequestDto;
 import com.example.backend.exception.BusinessException;
 
 import jakarta.persistence.EntityNotFoundException;
 
 import java.util.List;
+import java.util.UUID;
 
 import lombok.NonNull;
 
@@ -37,7 +39,7 @@ public interface ReleaseService {
      * @return Lista de releases
      */
     List<ReleaseResponseDto> find(
-            @NonNull Long applicationId,
+            @NonNull UUID applicationId,
             @NonNull String version,
             @NonNull EnvironmentEnum environment,
             @NonNull StatusEnum status)
@@ -49,7 +51,7 @@ public interface ReleaseService {
      * @param id ID da release
      * @return Release encontrada
      */
-    ReleaseResponseDto findById(@NonNull Long id) throws EntityNotFoundException;
+        ReleaseResponseDto findById(@NonNull UUID id) throws EntityNotFoundException;
 
     /**
      * Busca todas as releases.
@@ -65,7 +67,17 @@ public interface ReleaseService {
      * @param dto Novos dados
      * @return Release alterada
      */
-    ReleaseResponseDto updateRelease(@NonNull Long id, @NonNull ReleaseRequestDto dto)
+        ReleaseResponseDto updateRelease(@NonNull UUID id, @NonNull ReleaseRequestDto dto)
+            throws EntityNotFoundException, BusinessException;
+
+    /**
+     * Atualiza apenas a evidenceUrl de uma release.
+     *
+     * @param id ID da release
+     * @param dto dados de evidência
+     * @return Release atualizada
+     */
+        ReleaseResponseDto updateEvidenceUrl(@NonNull UUID id, @NonNull ReleaseEvidenceUpdateRequestDto dto)
             throws EntityNotFoundException, BusinessException;
 
     /**
@@ -73,7 +85,7 @@ public interface ReleaseService {
      *
      * @param id ID da release
      */
-    void deleteRelease(@NonNull Long id) throws EntityNotFoundException, BusinessException;
+        void deleteRelease(@NonNull UUID id) throws EntityNotFoundException, BusinessException;
 
     /**
      * Aprova ou rejeita uma release.
@@ -81,7 +93,7 @@ public interface ReleaseService {
      * @param id ID da release
      * @param outcome Resultado da aprovação (APPROVED ou REJECTED)
      */
-    void approveRelease(@NonNull Long id, @NonNull OutcomeEnum outcome)
+        void approveRelease(@NonNull UUID id, @NonNull OutcomeEnum outcome)
             throws EntityNotFoundException, BusinessException;
 
     /**
@@ -89,7 +101,7 @@ public interface ReleaseService {
      *
      * @param id ID da release
      */
-    void promoteRelease(@NonNull Long id) throws EntityNotFoundException, BusinessException;
+        void promoteRelease(@NonNull UUID id) throws EntityNotFoundException, BusinessException;
 
         /**
          * Calcula score determinístico (0..100) de evidência para uma release.
@@ -97,5 +109,5 @@ public interface ReleaseService {
          * @param id ID da release
          * @return Resultado do score de evidência
          */
-        EvidenceScoreResponseDto calculateEvidenceScore(@NonNull Long id) throws EntityNotFoundException;
+        EvidenceScoreResponseDto calculateEvidenceScore(@NonNull UUID id) throws EntityNotFoundException;
 }

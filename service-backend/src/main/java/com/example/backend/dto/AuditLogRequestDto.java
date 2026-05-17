@@ -37,8 +37,8 @@ public class AuditLogRequestDto {
     @Size(max = DtoConstants.MAX_TEXT_LENGTH, message = "Entidade deve ter no máximo 255 caracteres")
     private String entity;
 
-    @Schema(description = "ID da entidade", example = "1")
-    private Integer entityId;
+    @Schema(description = "ID textual da entidade", example = "10000000-0000-0000-0000-000000000001")
+    private String entityId;
 
     @Schema(description = "Dados da ação em JSON", example = "{\"field\": \"value\"}")
     private String payload;

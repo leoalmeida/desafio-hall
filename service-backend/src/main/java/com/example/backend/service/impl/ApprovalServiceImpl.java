@@ -3,6 +3,7 @@ package com.example.backend.service.impl;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,8 +55,8 @@ public class ApprovalServiceImpl implements ApprovalService {
 
     @Override
     @Transactional(readOnly = true)
-    public ApprovalResponseDto findById(final Long id) throws EntityNotFoundException {
-        if (id == null || id <= 0) {
+    public ApprovalResponseDto findById(final UUID id) throws EntityNotFoundException {
+        if (id == null) {
             throw new IllegalArgumentException("ID da aprovação inválido");
         }
         log.info("Buscando aprovação por ID: {}", id);
@@ -69,8 +70,8 @@ public class ApprovalServiceImpl implements ApprovalService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ApprovalResponseDto> findByReleaseId(final Long releaseId) throws BusinessException {
-        if (releaseId == null || releaseId <= 0) {
+    public List<ApprovalResponseDto> findByReleaseId(final UUID releaseId) throws BusinessException {
+        if (releaseId == null) {
             throw new IllegalArgumentException("ID da release inválido");
         }
         log.info("Buscando aprovações para release ID: {}", releaseId);

@@ -8,6 +8,7 @@ import com.example.backend.dto.ApprovalResponseDto;
 import com.example.backend.exception.BusinessException;
 
 import jakarta.persistence.EntityNotFoundException;
+import java.util.UUID;
 import lombok.NonNull;
 
 /**
@@ -29,7 +30,7 @@ public interface ApprovalService {
      * @param id ID da aprovação
      * @return Aprovação encontrada
      */
-    ApprovalResponseDto findById(@NonNull Long id) throws EntityNotFoundException;
+    ApprovalResponseDto findById(@NonNull UUID id) throws EntityNotFoundException;
 
     /**
      * Busca aprovações por ID da release.
@@ -37,7 +38,7 @@ public interface ApprovalService {
      * @param releaseId ID da release
      * @return Lista de aprovações
      */
-    List<ApprovalResponseDto> findByReleaseId(@NonNull Long releaseId) throws BusinessException;
+    List<ApprovalResponseDto> findByReleaseId(@NonNull UUID releaseId) throws BusinessException;
 
     /**
      * Busca aprovações por email do aprovador.

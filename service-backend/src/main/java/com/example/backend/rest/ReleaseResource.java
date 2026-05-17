@@ -2,8 +2,8 @@ package com.example.backend.rest;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -23,9 +24,8 @@ import com.example.backend.domain.entity.OutcomeEnum;
 import com.example.backend.domain.entity.StatusEnum;
 import com.example.backend.dto.ReleaseRequestDto;
 import com.example.backend.dto.ReleaseResponseDto;
-import com.example.backend.dto.EvidenceScoreResponseDto;
-import com.example.backend.security.AuditLogManager;
-import com.example.backend.security.SecurityContextUtils;
+import com.example.backend.service.ReleaseAuditService;
+import com.example.backend.service.ReleasePromotionCoordinator;
 import com.example.backend.service.ReleaseService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -33,7 +33,6 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import lombok.extern.slf4j.Slf4j;
 
 
 /**
@@ -45,17 +44,24 @@ import lombok.extern.slf4j.Slf4j;
         maxAge = RestConstants.CORS_MAX_AGE)
 @RequestMapping("/api/releases")
 @Tag(name = "Releases", description = "Endpoint de gestão de releases")
-@Slf4j
 @Validated
 public class ReleaseResource {
 
     private final ReleaseService releaseService;
-    private final AuditLogManager auditLogManager;
+        private final ReleaseAuditService releaseAuditService;
+    private final ReleasePromotionCoordinator releasePromotionCoordinator;
 
-    @Autowired
-    public ReleaseResource(final ReleaseService service, final AuditLogManager auditLogManager) {
+    public ReleaseResource(
+            final ReleaseService service,
+            final ReleaseAuditService releaseAuditService,
+            final ReleasePromotionCoordinator releasePromotionCoordinator) {
         this.releaseService = Objects.requireNonNull(service, "releaseService não pode ser nulo");
-        this.auditLogManager = Objects.requireNonNull(auditLogManager, "auditLogManager não pode ser nulo");
+        this.releaseAuditService = Objects.requireNonNull(
+            releaseAuditService,
+            "releaseAuditService não pode ser nulo");
+        this.releasePromotionCoordinator = Objects.requireNonNull(
+                releasePromotionCoordinator,
+                "releasePromotionCoordinator não pode ser nulo");
     }
 
     @Operation(summary = "Listar releases")
@@ -66,14 +72,13 @@ public class ReleaseResource {
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasAnyRole('ADMIN','APPROVER','VIEWER')")
     public ResponseEntity<List<ReleaseResponseDto>> find(
-            @Parameter(description = "ID da aplicação", required = true) @RequestParam final Long applicationId,
+            @Parameter(description = "ID da aplicação", required = true,
+                example = "00000000-0000-0000-0000-000000000001") @RequestParam final UUID applicationId,
             @Parameter(description = "Versão da release", required = true) @RequestParam final String version,
             @Parameter(description = "Ambiente da release", required = true) @RequestParam
                     final EnvironmentEnum environment,
             @Parameter(description = "Status da release", required = true) @RequestParam final StatusEnum status) {
-        auditLogManager.logAction(SecurityContextUtils.getCurrentUserEmail(), "FIND", "Release", null,
-                String.format("{applicationId:%d, version:%s, environment:%s, status:%s}",
-                        applicationId, version, environment, status));
+        releaseAuditService.logFind(applicationId, version, environment, status);
         List<ReleaseResponseDto> result = releaseService.find(applicationId, version, environment, status);
         return ResponseEntity.ok(result);
     }
@@ -87,8 +92,7 @@ public class ReleaseResource {
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ReleaseResponseDto> create(@RequestBody final ReleaseRequestDto dto) {
-        auditLogManager.logAction(SecurityContextUtils.getCurrentUserEmail(), "CREATE", "Release", null,
-                auditLogManager.toJsonNode(dto));
+        releaseAuditService.logCreate(dto);
         ReleaseResponseDto result = releaseService.create(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(result);
     }
@@ -102,9 +106,9 @@ public class ReleaseResource {
     @PostMapping(value = "/{id}/approve")
     @PreAuthorize("hasAnyRole('ADMIN','APPROVER')")
     public ResponseEntity<Void> approve(
-            @Parameter(description = "ID da release", required = true) @PathVariable final Long id) {
-        auditLogManager.logAction(SecurityContextUtils.getCurrentUserEmail(), "APPROVE", "Release", id.intValue(),
-            auditLogManager.toJsonNode("releaseId",id.toString()));
+            @Parameter(description = "ID da release", required = true,
+                example = "10000000-0000-0000-0000-000000000001") @PathVariable final UUID id) {
+        releaseAuditService.logApprove(id);
         releaseService.approveRelease(id, OutcomeEnum.APPROVED);
         return ResponseEntity.noContent().build();
     }
@@ -118,9 +122,9 @@ public class ReleaseResource {
     @PostMapping(value = "/{id}/disapprove")
     @PreAuthorize("hasAnyRole('ADMIN','APPROVER')")
     public ResponseEntity<Void> disapprove(
-            @Parameter(description = "ID da release", required = true) @PathVariable final Long id) {
-        auditLogManager.logAction(SecurityContextUtils.getCurrentUserEmail(), "DISAPPROVE", "Release",
-            id.intValue(), auditLogManager.toJsonNode("ReleaseID", id.toString()));
+            @Parameter(description = "ID da release", required = true,
+                example = "10000000-0000-0000-0000-000000000001") @PathVariable final UUID id) {
+        releaseAuditService.logDisapprove(id);
         releaseService.approveRelease(id, OutcomeEnum.REJECTED);
         return ResponseEntity.noContent().build();
     }
@@ -134,28 +138,12 @@ public class ReleaseResource {
     @PostMapping(value = "/{id}/promote")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> promote(
-            @Parameter(description = "ID da release", required = true) @PathVariable final Long id) {
-        auditLogManager.logAction(SecurityContextUtils.getCurrentUserEmail(), "PROMOTE", "Release", id.intValue(),
-                auditLogManager.toJsonNode("ReleaseId",id.toString()));
-        releaseService.promoteRelease(id);
-        return ResponseEntity.noContent().build();
-    }
+            @Parameter(description = "ID da release", required = true,
+                example = "10000000-0000-0000-0000-000000000001") @PathVariable final UUID id,
+            @RequestHeader(value = "Idempotency-Key", required = false) final String idempotencyKey) {
+        releasePromotionCoordinator.promote(id, idempotencyKey);
 
-    @Operation(summary = "Calcular score de evidência da release")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Score calculado com sucesso"),
-        @ApiResponse(responseCode = "404", description = "Release não encontrada"),
-        @ApiResponse(responseCode = "500", description = "Erro interno do servidor")
-    })
-    @GetMapping(value = "/{id}/evidence-score", produces = MediaType.APPLICATION_JSON_VALUE)
-    @PreAuthorize("hasAnyRole('ADMIN','APPROVER','VIEWER')")
-    public ResponseEntity<EvidenceScoreResponseDto> evidenceScore(
-            @Parameter(description = "ID da release", required = true) @PathVariable final Long id) {
-        auditLogManager.logAction(
-            SecurityContextUtils.getCurrentUserEmail(), "EVIDENCE_SCORE", "Release", id.intValue(),
-                auditLogManager.toJsonNode("ReleaseId", id.toString()));
-        EvidenceScoreResponseDto result = releaseService.calculateEvidenceScore(id);
-        return ResponseEntity.ok(result);
+        return ResponseEntity.noContent().build();
     }
 
 }

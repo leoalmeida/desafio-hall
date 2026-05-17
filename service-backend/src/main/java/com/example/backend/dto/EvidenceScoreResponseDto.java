@@ -1,6 +1,7 @@
 package com.example.backend.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -20,8 +21,8 @@ import lombok.ToString;
 @ToString
 public class EvidenceScoreResponseDto {
 
-    @Schema(description = "ID da release", example = "1")
-    private Long releaseId;
+    @Schema(description = "ID da release", example = "10000000-0000-0000-0000-000000000001")
+    private UUID releaseId;
 
     @Schema(description = "Score de evidência determinístico (0..100)", example = "85")
     private Integer score;

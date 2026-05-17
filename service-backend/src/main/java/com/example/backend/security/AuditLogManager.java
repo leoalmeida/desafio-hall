@@ -33,14 +33,14 @@ public class AuditLogManager {
      * 
      * @param action   a ação realizada
      * @param entity   a entidade afetada
-     * @param entityId o ID da entidade (opcional)
+    * @param entityId o ID textual da entidade (opcional)
      * @param payload  dados adicionais sobre a ação (opcional)
      */
     public void logAction(
             final String actor,
             final String action,
             final String entity,
-            final Integer entityId,
+            final String entityId,
             final String payload) {
 
         auditLogService.create(AuditLogRequestDto.builder()

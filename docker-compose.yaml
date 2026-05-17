@@ -17,7 +17,10 @@ services:
           "spring.datasource.url" : "jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}",
           "spring.datasource.username" : "${DB_USERNAME}",
           "spring.datasource.password" : "${DB_PASSWORD}",
-          "security.jwt.secret" : "${JWT_SECRET}"
+          "security.jwt.secret" : "${JWT_SECRET}",
+          "security.jwt.algorithm" : "${JWT_ALGORITHM}",
+          "security.jwt.expiration-ms" : "${JWT_EXPIRATION_MS}",
+          "security.policy.file.path" : "${POLICY_FILE_PATH}"
         }'
     volumes:
       - .m2:/root/.m2
@@ -38,6 +41,10 @@ services:
       PORT: ${API_GATEWAY_DOCKER_PORT}
       BACKEND_BASE_URL: http://service-backend:${SPRING_DOCKER_PORT}
       JWT_SECRET: ${JWT_SECRET}
+      JWT_ALGORITHM: ${JWT_ALGORITHM}
+      JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS}
+      BACKEND_LOG_LEVEL: ${BACKEND_LOG_LEVEL}
+      GLOBAL_LOG_LEVEL: ${GLOBAL_LOG_LEVEL}
     volumes:
       - ./gateway-node:/usr/src/app
       - /usr/src/app/node_modules

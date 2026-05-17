@@ -1,7 +1,8 @@
 package com.example.backend.rest;
 
 import com.example.backend.service.ReleaseService;
-import com.example.backend.security.AuditLogManager;
+import com.example.backend.service.ReleaseAuditService;
+import com.example.backend.service.ReleasePromotionCoordinator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -13,14 +14,16 @@ class ReleaseResourceTest {
     @Mock
     private ReleaseService releaseService;
     @Mock
-    private AuditLogManager auditLogManager;
+    private ReleasePromotionCoordinator releasePromotionCoordinator;
+    @Mock
+    private ReleaseAuditService releaseAuditService;
     @InjectMocks
     private ReleaseResource releaseResource;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        releaseResource = new ReleaseResource(releaseService, auditLogManager);
+        releaseResource = new ReleaseResource(releaseService, releaseAuditService, releasePromotionCoordinator);
     }
 
     @Test

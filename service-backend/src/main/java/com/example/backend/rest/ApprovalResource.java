@@ -2,6 +2,7 @@ package com.example.backend.rest;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -85,9 +86,10 @@ public class ApprovalResource {
     @GetMapping(value = "/release", produces = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasAnyRole('ADMIN','APPROVER')")
     public ResponseEntity<List<ApprovalResponseDto>> buscarPorRelease(
-            @Parameter(description = "ID da release", required = true) @RequestParam final Long releaseId) {
+            @Parameter(description = "ID da release", required = true,
+                    example = "10000000-0000-0000-0000-000000000001") @RequestParam final UUID releaseId) {
         auditLogManager.logAction(SecurityContextUtils.getCurrentUserEmail(), "FIND_BY_RELEASE_ID", "ApprovalResource",
-            releaseId.intValue(), auditLogManager.toJsonNode("releaseId", releaseId.toString()));
+            releaseId.toString(), auditLogManager.toJsonNode("releaseId", releaseId.toString()));
         List<ApprovalResponseDto> result = approvalService.findByReleaseId(releaseId);
         return ResponseEntity.ok(result);
     }

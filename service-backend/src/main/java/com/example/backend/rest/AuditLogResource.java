@@ -61,11 +61,70 @@ public class AuditLogResource {
     })
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<List<AuditLogResponseDto>> findAll() {
-        auditLogManager.logAction(SecurityContextUtils.getCurrentUserEmail(), "LIST_ALL_AUDITLOG", "AuditLog", null,
-                null);
-        List<AuditLogResponseDto> result = auditLogService.findAll();
+    public ResponseEntity<List<AuditLogResponseDto>> findAll(
+            @RequestParam(required = false) final String ator,
+            @RequestParam(required = false) final String acao,
+            @RequestParam(required = false) final String entidade,
+            @RequestParam(required = false) final String dataInicio,
+            @RequestParam(required = false) final String dataFim) {
+        auditLogManager.logAction(
+                SecurityContextUtils.getCurrentUserEmail(),
+                "LIST_AUDITLOG",
+                "AuditLog",
+                null,
+                buildFilterPayload(ator, acao, entidade, dataInicio, dataFim));
+        List<AuditLogResponseDto> result = resolveAuditQuery(ator, acao, entidade, dataInicio, dataFim);
         return ResponseEntity.ok(result);
+    }
+
+    private List<AuditLogResponseDto> resolveAuditQuery(
+            final String ator,
+            final String acao,
+            final String entidade,
+            final String dataInicio,
+            final String dataFim) {
+        if (hasText(ator)) {
+            return auditLogService.findByActor(ator);
+        }
+        if (hasText(acao)) {
+            return auditLogService.findByAction(acao);
+        }
+        if (hasText(entidade)) {
+            return auditLogService.findByEntity(entidade);
+        }
+        if (hasText(dataInicio) || hasText(dataFim)) {
+            return findAuditByDateRange(dataInicio, dataFim);
+        }
+        return auditLogService.findAll();
+    }
+
+    private List<AuditLogResponseDto> findAuditByDateRange(final String dataInicio, final String dataFim) {
+        if (!hasText(dataInicio) || !hasText(dataFim)) {
+            throw new IllegalArgumentException("dataInicio e dataFim devem ser informadas juntas");
+        }
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
+        LocalDateTime inicio = LocalDateTime.parse(dataInicio, formatter);
+        LocalDateTime fim = LocalDateTime.parse(dataFim, formatter);
+        return auditLogService.findByDateRange(inicio, fim);
+    }
+
+    private String buildFilterPayload(
+            final String ator,
+            final String acao,
+            final String entidade,
+            final String dataInicio,
+            final String dataFim) {
+        return String.format(
+                "{ator:%s, acao:%s, entidade:%s, dataInicio:%s, dataFim:%s}",
+                ator,
+                acao,
+                entidade,
+                dataInicio,
+                dataFim);
+    }
+
+    private boolean hasText(final String value) {
+        return value != null && !value.isBlank();
     }
 
     @Operation(summary = "Buscar registros por ator")

@@ -3,6 +3,7 @@ package com.example.backend.service.impl;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,8 +55,8 @@ public class AuditLogServiceImpl implements AuditLogService {
 
     @Override
     @Transactional(readOnly = true)
-    public AuditLogResponseDto findById(final Long id) throws EntityNotFoundException {
-        if (id == null || id <= 0) {
+    public AuditLogResponseDto findById(final UUID id) throws EntityNotFoundException {
+        if (id == null) {
             throw new IllegalArgumentException("ID do registro inválido");
         }
         log.info("Buscando registro de auditoria por ID: {}", id);

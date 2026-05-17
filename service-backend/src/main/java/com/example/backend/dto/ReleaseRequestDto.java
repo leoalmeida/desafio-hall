@@ -3,10 +3,10 @@ package com.example.backend.dto;
 import com.example.backend.domain.entity.EnvironmentEnum;
 import com.example.backend.domain.entity.StatusEnum;
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -26,10 +26,9 @@ import lombok.ToString;
 @ToString
 public class ReleaseRequestDto {
 
-    @Schema(description = "ID da aplicação", example = "1")
+    @Schema(description = "ID da aplicação", example = "00000000-0000-0000-0000-000000000001")
     @NotNull(message = "ID da aplicação é obrigatório")
-    @Min(value = DtoConstants.MIN_ID_VALUE, message = "ID da application deve ser um número positivo")
-    private Long applicationId;
+    private UUID applicationId;
 
     @Schema(description = "Versão da release", example = "1.0.0")
     @NotBlank(message = "Versão é obrigatória")

@@ -2,7 +2,7 @@ package com.example.backend.rest;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -14,6 +14,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.List;
+import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,6 +37,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 @WebMvcTest(controllers = ApplicationResource.class)
 @Import({SecurityConfig.class, JwtAuthenticationFilter.class})
 class ApplicationResourceWebMvcTest {
+
+        private static final UUID APPLICATION_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        private static final UUID APPLICATION_ID_2 = UUID.fromString("00000000-0000-0000-0000-000000000002");
 
     @Autowired
     private MockMvc mockMvc;
@@ -81,7 +85,7 @@ class ApplicationResourceWebMvcTest {
     void findAllApplicationsDeveRetornar200ComTokenValido() throws Exception {
         mockAdminToken();
         ApplicationResponseDto dto = ApplicationResponseDto.builder()
-                .id(1L)
+                                .id(APPLICATION_ID)
                 .name("app-core")
                 .ownerTeam("Team A")
                 .repoUrl("https://repo.example.com")
@@ -90,19 +94,19 @@ class ApplicationResourceWebMvcTest {
 
         mockMvc.perform(get("/api/applications").header(HttpHeaders.AUTHORIZATION, AUTH_HEADER))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(1))
+                .andExpect(jsonPath("$[0].id").value(APPLICATION_ID.toString()))
                 .andExpect(jsonPath("$[0].name").value("app-core"));
 
         verify(applicationService).findAll();
     }
 
     @Test
-    void findAllApplicationsDeveRetornar200ComTokenUser() throws Exception {
+        void findAllApplicationsDeveRetornar403ComTokenUser() throws Exception {
         mockUserToken();
         when(applicationService.findAll()).thenReturn(List.of());
 
         mockMvc.perform(get("/api/applications").header(HttpHeaders.AUTHORIZATION, AUTH_HEADER))
-                .andExpect(status().isOk());
+                                .andExpect(status().isForbidden());
     }
 
     // --- POST /api/applications ---
@@ -116,7 +120,7 @@ class ApplicationResourceWebMvcTest {
                 .repoUrl("https://repo.example.com/nova")
                 .build();
         ApplicationResponseDto response = ApplicationResponseDto.builder()
-                .id(2L)
+                .id(APPLICATION_ID_2)
                 .name("nova-app")
                 .ownerTeam("Team B")
                 .build();
@@ -127,7 +131,7 @@ class ApplicationResourceWebMvcTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").value(2))
+                .andExpect(jsonPath("$.id").value(APPLICATION_ID_2.toString()))
                 .andExpect(jsonPath("$.name").value("nova-app"));
 
         verify(applicationService).create(any(ApplicationRequestDto.class));
@@ -154,13 +158,13 @@ class ApplicationResourceWebMvcTest {
                 .repoUrl("https://repo.example.com/updated")
                 .build();
         ApplicationResponseDto response = ApplicationResponseDto.builder()
-                .id(1L)
+                .id(APPLICATION_ID)
                 .name("updated")
                 .build();
-        when(applicationService.update(anyLong(), any(ApplicationRequestDto.class), anyBoolean()))
+        when(applicationService.update(any(UUID.class), any(ApplicationRequestDto.class), anyBoolean()))
                 .thenReturn(response);
 
-        mockMvc.perform(put("/api/applications/1")
+        mockMvc.perform(put("/api/applications/" + APPLICATION_ID)
                         .header(HttpHeaders.AUTHORIZATION, AUTH_HEADER)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -177,14 +181,14 @@ class ApplicationResourceWebMvcTest {
                 .name("patched-name")
                 .build();
         ApplicationResponseDto response = ApplicationResponseDto.builder()
-                .id(1L)
+                .id(APPLICATION_ID)
                 .name("patched-name")
                 .ownerTeam("Team A")
                 .build();
-        when(applicationService.update(anyLong(), any(ApplicationRequestDto.class), anyBoolean()))
+        when(applicationService.update(any(UUID.class), any(ApplicationRequestDto.class), anyBoolean()))
                 .thenReturn(response);
 
-        mockMvc.perform(patch("/api/applications/1")
+        mockMvc.perform(patch("/api/applications/" + APPLICATION_ID)
                         .header(HttpHeaders.AUTHORIZATION, AUTH_HEADER)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
