@@ -65,7 +65,7 @@ export class LoginPage implements OnInit {
   reloadPage() {
     this.isLoggedIn.set(this.tokenStorage.isAuthenticated());
     if (this.isLoggedIn()) {
-      this.navigator.navigate(['app']);
+      this.navigator.navigate(['']);
     }
   }
 }

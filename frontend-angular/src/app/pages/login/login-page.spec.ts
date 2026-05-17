@@ -57,7 +57,11 @@ describe('LoginPage', () => {
   });
 
   it('deve chamar o serviço de login e navegar se bem-sucedido', () => {
-    const mockUser = { id: 1, nome: 'Teste', username: 'teste' };
+    const mockUser = {
+      email: 'teste@example.com',
+      name: 'Teste',
+      role: 'ROLE_VIEWER',
+    };
     authServiceSpy.login.mockReturnValue(of(mockUser as any));
 
     component.formLogin.setValue({ username: 'user', password: '123' });
@@ -75,7 +79,7 @@ describe('LoginPage', () => {
   it('deve redirecionar no ngOnInit se já estiver autenticado', () => {
     tokenStorageSpy.isAuthenticated.mockReturnValue(true);
     component.ngOnInit();
-    expect(routerSpy.navigate).toHaveBeenCalledWith(['app']);
+    expect(routerSpy.navigate).toHaveBeenCalledWith(['']);
   });
 
   it('deve atualizar isLoggedIn no reloadPage quando não autenticado', () => {

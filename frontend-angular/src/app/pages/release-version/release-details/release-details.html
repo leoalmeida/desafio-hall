@@ -57,10 +57,9 @@
         matInput
         placeholder="Digite a URL de evidencia"
         formControlName="evidenceUrl"
-        required
       />
-      @if (formRelease.get("evidenceUrl")?.hasError("required")) {
-        <mat-error>URL de evidencia é obrigatória</mat-error>
+      @if (formRelease.get("evidenceUrl")?.hasError("pattern")) {
+        <mat-error>Informe uma URL HTTP/HTTPS válida</mat-error>
       }
     </mat-form-field>
   </form>

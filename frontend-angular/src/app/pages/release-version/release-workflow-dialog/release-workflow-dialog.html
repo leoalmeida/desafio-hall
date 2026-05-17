@@ -1,0 +1,113 @@
+<h2 mat-dialog-title>{{ headerTitle() }}</h2>
+
+<mat-dialog-content class="workflow-dialog-content">
+  <section class="release-summary">
+    <div>
+      <strong>Release:</strong> {{ data.release.version }}
+    </div>
+    <div>
+      <strong>ID:</strong> {{ data.release.id }}
+    </div>
+    <div>
+      <strong>Aplicação:</strong> {{ data.release.applicationId }}
+    </div>
+    <div>
+      <strong>Ambiente:</strong> {{ data.release.env }}
+    </div>
+    <div>
+      <strong>Status:</strong> {{ data.release.status }}
+    </div>
+  </section>
+
+  <p class="policy-summary">{{ policySummary() }}</p>
+
+  @if (notePersistenceWarning()) {
+    <div class="workflow-warning">
+      <mat-icon>warning</mat-icon>
+      <span>{{ notePersistenceWarning() }}</span>
+    </div>
+  }
+
+  @if (loadWarnings().length) {
+    <div class="workflow-warning">
+      <mat-icon>info</mat-icon>
+      <span>{{ loadWarnings().join(' ') }}</span>
+    </div>
+  }
+
+  <section class="checklist-section">
+    <h3>Checklist de pré-lançamento</h3>
+    <div class="checklist-grid">
+      @for (item of checklistItems(); track item.label) {
+        <article class="checklist-item" [class.ok]="item.ok" [class.failed]="!item.ok">
+          <div class="checklist-header">
+            <mat-icon>{{ item.ok ? 'check_circle' : 'error' }}</mat-icon>
+            <span>{{ item.label }}</span>
+          </div>
+          <p>{{ item.detail }}</p>
+        </article>
+      }
+    </div>
+  </section>
+
+  <mat-divider></mat-divider>
+
+  @if (requiresNote()) {
+    <section class="review-section">
+      <h3>Notas da decisão</h3>
+      <form [formGroup]="reviewForm">
+        <mat-form-field class="full-width" appearance="outline">
+          <mat-label>Observação operacional</mat-label>
+          <textarea
+            matInput
+            rows="4"
+            formControlName="notes"
+            placeholder="Descreva o contexto da aprovação ou rejeição"
+          ></textarea>
+          @if (reviewForm.get('notes')?.hasError('required')) {
+            <mat-error>Informe uma observação antes de continuar.</mat-error>
+          }
+          @if (reviewForm.get('notes')?.hasError('maxlength')) {
+            <mat-error>Use no máximo 1000 caracteres.</mat-error>
+          }
+        </mat-form-field>
+      </form>
+    </section>
+
+    <mat-divider></mat-divider>
+  }
+
+  <section class="timeline-section">
+    <h3>Timeline do release</h3>
+
+    @if (loading()) {
+      <p>Carregando timeline e checklist...</p>
+    } @else if (timelineItems().length === 0) {
+      <p>Nenhum evento disponível para esta release.</p>
+    } @else {
+      <div class="timeline-list">
+        @for (item of timelineItems(); track item.timestamp + item.title + item.description) {
+          <article class="timeline-item" [class]="item.category">
+            <div class="timeline-dot"></div>
+            <div class="timeline-body">
+              <div class="timeline-title-row">
+                <strong>{{ item.title }}</strong>
+                <span>{{ item.timestamp || '-' }}</span>
+              </div>
+              <p>{{ item.description }}</p>
+            </div>
+          </article>
+        }
+      </div>
+    }
+  </section>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button matButton type="button" (click)="close()">Fechar</button>
+  @if (data.mode !== 'timeline') {
+    <button matButton="filled" color="primary" type="button" (click)="confirm()" [disabled]="!canSubmit()">
+      Confirmar
+    </button>
+  }
+</mat-dialog-actions>

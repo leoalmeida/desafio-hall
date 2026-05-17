@@ -1,6 +1,6 @@
 export interface ApprovalType {
-  id?: number;
-  releaseId: number;
+  id?: string;
+  releaseId: string;
   approverEmail: string;
   outcome: 'APPROVED' | 'REJECTED' | string;
   notes?: string;

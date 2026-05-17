@@ -42,11 +42,11 @@ export class ReleaseDetails {
   public data: ApplicationType = inject(MAT_DIALOG_DATA) as ApplicationType;
 
   formRelease: FormGroup = this.formBuilder.group({
-    applicationId: [0, Validators.required],
+    applicationId: ['', Validators.required],
     version: ['', Validators.required],
     env: ['DEV', Validators.required],
     status: ['CREATED', Validators.required],
-    evidenceUrl: [''],
+    evidenceUrl: ['', Validators.pattern(/^https?:\/\/.+/i)],
   });
 
   envTypeList = computed(() => [
@@ -66,7 +66,7 @@ export class ReleaseDetails {
   ]);
 
   constructor() {
-    this.formRelease.patchValue({ applicationId: this.data?.id ?? 0 });
+    this.formRelease.patchValue({ applicationId: this.data?.id ?? '' });
   }
 
   onSubmit(): void {

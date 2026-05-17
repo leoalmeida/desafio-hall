@@ -1,9 +1,9 @@
 export interface AuditLogType {
-  id?: number;
+  id?: string;
   actor: string;
   action: string;
   entity: string;
-  entityId?: number;
+  entityId?: string;
   payload?: string;
   timestamp?: string;
 }

@@ -6,6 +6,7 @@ import {
 } from '@angular/core';
 import {
   HttpInterceptorFn,
+  HttpErrorResponse,
   provideHttpClient,
   withInterceptors,
 } from '@angular/common/http';
@@ -16,7 +17,7 @@ import {
 import { provideRouter, withViewTransitions } from '@angular/router';
 import { routes } from './app.routes';
 import { environment } from '../environments/environment';
-import { catchError, throwError } from 'rxjs';
+import { catchError, retry, throwError, timer } from 'rxjs';
 import { TokenStorageService } from './services/token-storage.service';
 
 export const appInterceptor: HttpInterceptorFn = (req, next) => {
@@ -38,13 +39,34 @@ export const appInterceptor: HttpInterceptorFn = (req, next) => {
 
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   return next(req).pipe(
+    retry({
+      count: isRetryableMethod(req.method) ? 2 : 0,
+      delay: (error, retryCount) => {
+        if (!isRetryableError(error)) {
+          throw error;
+        }
+
+        return timer(300 * retryCount);
+      },
+    }),
     catchError((error) => {
       console.error('HTTP Error:', error);
-      // Here you can add global error handling logic, e.g., show a notification
       return throwError(() => error);
     }),
   );
 };
+
+function isRetryableMethod(method: string): boolean {
+  return ['GET', 'HEAD', 'OPTIONS'].includes(method.toUpperCase());
+}
+
+function isRetryableError(error: unknown): boolean {
+  if (!(error instanceof HttpErrorResponse)) {
+    return false;
+  }
+
+  return error.status === 0 || error.status === 408 || error.status === 429 || error.status >= 500;
+}
 
 export const appConfig: ApplicationConfig = {
   providers: [

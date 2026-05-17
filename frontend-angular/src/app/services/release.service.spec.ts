@@ -18,8 +18,8 @@ describe('ReleaseService', () => {
   };
 
   const mockRelease: ReleaseType = {
-    id: 1,
-    applicationId: 1,
+    id: '10000000-0000-0000-0000-000000000001',
+    applicationId: '00000000-0000-0000-0000-000000000001',
     version: 'V1.0',
     env: 'DEV',
     status: 'CREATED',
@@ -87,33 +87,43 @@ describe('ReleaseService', () => {
     expect(service.items().length).toBe(1);
   });
 
-  it('deve chamar endpoint approveRelease', () => {
-    service.approveRelease(mockRelease.id!);
+  it('deve chamar endpoint approveRelease', async () => {
+    const resultPromise = firstValueFrom(service.approveRelease(mockRelease.id!));
 
     const req = httpMock.expectOne(
       `${environment.releasesApi}/${mockRelease.id}/approve`,
     );
     expect(req.request.method).toBe('POST');
-    req.flush(mockRelease);
+    req.flush(null);
+
+    await expect(resultPromise).resolves.toBe(true);
   });
 
-  it('deve chamar endpoint disapproveRelease', () => {
-    service.disapproveRelease(mockRelease.id!);
+  it('deve chamar endpoint disapproveRelease', async () => {
+    const resultPromise = firstValueFrom(service.disapproveRelease(mockRelease.id!));
 
     const req = httpMock.expectOne(
       `${environment.releasesApi}/${mockRelease.id}/disapprove`,
     );
     expect(req.request.method).toBe('POST');
-    req.flush(mockRelease);
+    req.flush(null);
+
+    await expect(resultPromise).resolves.toBe(true);
   });
 
-  it('deve chamar endpoint promoteRelease', () => {
-    service.promoteRelease(mockRelease.id!);
+  it('deve chamar endpoint promoteRelease', async () => {
+    const idempotencyKey = 'release-test-key';
+    const resultPromise = firstValueFrom(
+      service.promoteRelease(mockRelease.id!, idempotencyKey),
+    );
 
     const req = httpMock.expectOne(
       `${environment.releasesApi}/${mockRelease.id}/promote`,
     );
     expect(req.request.method).toBe('POST');
-    req.flush(mockRelease);
+    expect(req.request.headers.get('Idempotency-Key')).toBe(idempotencyKey);
+    req.flush(null);
+
+    await expect(resultPromise).resolves.toBe(true);
   });
 });

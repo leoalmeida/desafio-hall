@@ -54,6 +54,14 @@ export class TokenStorageService {
     return this.usuario.getValue().userData?.role === role || false;
   }
 
+  public hasAnyRole(roles: string[]): boolean {
+    if (!roles.length) {
+      return this.isAuthenticated();
+    }
+
+    return roles.some((role) => this.hasRole(role));
+  }
+
   public saveUser(user: UserType): void {
     window.sessionStorage.removeItem('user'); // Clear previous user
     window.sessionStorage.setItem('user', JSON.stringify(user));

@@ -92,8 +92,11 @@ public interface ReleaseService {
      *
      * @param id ID da release
      * @param outcome Resultado da aprovação (APPROVED ou REJECTED)
+      * @param approverEmail Email do aprovador autenticado
+      * @param notes Notas opcionais da decisão
      */
-        void approveRelease(@NonNull UUID id, @NonNull OutcomeEnum outcome)
+          void approveRelease(@NonNull UUID id, @NonNull OutcomeEnum outcome,
+                     @NonNull String approverEmail, String notes)
             throws EntityNotFoundException, BusinessException;
 
     /**

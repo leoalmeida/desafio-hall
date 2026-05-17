@@ -89,14 +89,19 @@
         <ng-container matColumnDef="actions">
           <th mat-header-cell *matHeaderCellDef>Ações</th>
           <td mat-cell *matCellDef="let item">
+            <button mat-icon-button title="Checklist e timeline" (click)="onViewWorkflow(item)">
+              <mat-icon>visibility</mat-icon>
+            </button>
             @if (isApprover) {
-              <button mat-icon-button color="primary" title="Aprovar" (click)="onApprove(item.id)">
+              <button mat-icon-button color="primary" title="Aprovar" (click)="onApprove(item)">
                 <mat-icon>check_circle</mat-icon>
               </button>
-              <button mat-icon-button color="warn" title="Reprovar" (click)="onDisapprove(item.id)">
+              <button mat-icon-button color="warn" title="Reprovar" (click)="onDisapprove(item)">
                 <mat-icon>cancel</mat-icon>
               </button>
-              <button mat-icon-button color="accent" title="Promover" (click)="onPromote(item.id)">
+            }
+            @if (isAdmin) {
+              <button mat-icon-button color="accent" title="Promover" (click)="onPromote(item)">
                 <mat-icon>rocket_launch</mat-icon>
               </button>
             }

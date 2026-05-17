@@ -65,11 +65,13 @@ class ReleaseServiceImplTest {
         when(approvalRepository.findByReleaseId(RELEASE_ID))
                 .thenReturn(List.of(Approval.builder().outcome(OutcomeEnum.APPROVED).build()));
 
-        assertDoesNotThrow(() -> service.approveRelease(RELEASE_ID, OutcomeEnum.APPROVED));
+        assertDoesNotThrow(() -> service.approveRelease(RELEASE_ID, OutcomeEnum.APPROVED,
+            "approver@example.com", "Liberado"));
 
+        verify(approvalRepository).saveAndFlush(any(Approval.class));
         verify(releaseRepository).saveAndFlush(any(Release.class));
         verify(policyService).validateFreezeWindow(EnvironmentEnum.PREPROD);
-        verify(policyService).validateApprovalThresholds(1L, 1L);
+        verify(policyService).validateApprovalThresholds(2L, 2L);
         assertEquals(StatusEnum.APPROVED_PREPROD, release.getStatus());
     }
 
@@ -78,11 +80,13 @@ class ReleaseServiceImplTest {
         Release release = releaseComStatus(StatusEnum.PENDING_PROD, EnvironmentEnum.PROD);
         when(releaseRepository.findById(RELEASE_ID)).thenReturn(Optional.of(release));
 
-        assertDoesNotThrow(() -> service.approveRelease(RELEASE_ID, OutcomeEnum.REJECTED));
+        assertDoesNotThrow(() -> service.approveRelease(RELEASE_ID, OutcomeEnum.REJECTED,
+                "approver@example.com", "Reprovado"));
 
+        verify(approvalRepository).findByReleaseId(RELEASE_ID);
+        verify(approvalRepository).saveAndFlush(any(Approval.class));
         verify(releaseRepository).saveAndFlush(any(Release.class));
         verify(policyService).validateFreezeWindow(EnvironmentEnum.PROD);
-        verify(approvalRepository, never()).findByReleaseId(any(UUID.class));
         assertEquals(StatusEnum.REJECTED, release.getStatus());
     }
 
@@ -90,15 +94,15 @@ class ReleaseServiceImplTest {
     void approveReleaseDeveFalharQuandoStatusNaoPermiteAprovacao() {
         Release release = releaseComStatus(StatusEnum.CREATED, EnvironmentEnum.DEV);
         when(releaseRepository.findById(RELEASE_ID)).thenReturn(Optional.of(release));
-        when(approvalRepository.findByReleaseId(RELEASE_ID))
-                .thenReturn(List.of(Approval.builder().outcome(OutcomeEnum.APPROVED).build()));
 
         BusinessException ex =
-            assertThrows(BusinessException.class, () -> service.approveRelease(RELEASE_ID, OutcomeEnum.APPROVED));
+            assertThrows(BusinessException.class, () -> service.approveRelease(RELEASE_ID, OutcomeEnum.APPROVED,
+                    "approver@example.com", "Liberado"));
         assertNotNull(ex);
 
         verify(policyService).validateFreezeWindow(EnvironmentEnum.DEV);
-        verify(policyService).validateApprovalThresholds(1L, 1L);
+        verify(approvalRepository, never()).findByReleaseId(any(UUID.class));
+        verify(approvalRepository, never()).saveAndFlush(any(Approval.class));
         verify(releaseRepository, never()).saveAndFlush(release);
     }
 
@@ -187,11 +191,13 @@ class ReleaseServiceImplTest {
             Approval.builder().outcome(OutcomeEnum.APPROVED).build(),
             Approval.builder().outcome(OutcomeEnum.REJECTED).build()));
 
-        assertDoesNotThrow(() -> service.approveRelease(RELEASE_ID, OutcomeEnum.APPROVED));
+        assertDoesNotThrow(() -> service.approveRelease(RELEASE_ID, OutcomeEnum.APPROVED,
+                "approver@example.com", "Seguiu para PROD"));
 
+        verify(approvalRepository).saveAndFlush(any(Approval.class));
         verify(releaseRepository).saveAndFlush(any(Release.class));
         verify(policyService).validateFreezeWindow(EnvironmentEnum.PROD);
-        verify(policyService).validateApprovalThresholds(1L, 2L);
+        verify(policyService).validateApprovalThresholds(2L, 3L);
         assertEquals(StatusEnum.APPROVED_PROD, release.getStatus());
     }
 
@@ -200,7 +206,8 @@ class ReleaseServiceImplTest {
         when(releaseRepository.findById(RELEASE_ID)).thenReturn(Optional.empty());
 
         EntityNotFoundException ex =
-            assertThrows(EntityNotFoundException.class, () -> service.approveRelease(RELEASE_ID, OutcomeEnum.APPROVED));
+            assertThrows(EntityNotFoundException.class, () -> service.approveRelease(RELEASE_ID, OutcomeEnum.APPROVED,
+                    "approver@example.com", "Liberado"));
         assertNotNull(ex);
     }
 
@@ -212,11 +219,13 @@ class ReleaseServiceImplTest {
                 .thenReturn(List.of(Approval.builder().outcome(OutcomeEnum.APPROVED).build()));
         org.mockito.Mockito.doThrow(new BusinessException("Policy bloqueou"))
                 .when(policyService)
-                .validateApprovalThresholds(1L, 1L);
+                .validateApprovalThresholds(2L, 2L);
 
         BusinessException ex =
-            assertThrows(BusinessException.class, () -> service.approveRelease(RELEASE_ID, OutcomeEnum.APPROVED));
+            assertThrows(BusinessException.class, () -> service.approveRelease(RELEASE_ID, OutcomeEnum.APPROVED,
+                    "approver@example.com", "Liberado"));
         assertNotNull(ex);
+        verify(approvalRepository, never()).saveAndFlush(any(Approval.class));
         verify(releaseRepository, never()).saveAndFlush(release);
     }
 

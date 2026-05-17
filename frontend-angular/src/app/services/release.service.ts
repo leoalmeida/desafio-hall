@@ -1,15 +1,25 @@
 import { inject, Injectable, signal } from '@angular/core';
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { catchError, map, Observable, throwError } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { ReleaseType } from '../models/release-type';
 import { NotificationService } from './notification.service';
+import { EvidenceScoreType } from '../models/evidence-score-type';
+
+export interface LocalReviewNote {
+  releaseId: string;
+  action: 'APPROVED' | 'REJECTED';
+  notes: string;
+  actor?: string;
+  createdAt: string;
+}
 
 @Injectable({
   providedIn: 'root',
 })
 export class ReleaseService {
   private baseUrl = '/api/releases';
+  private readonly localNotesStorageKey = 'release-review-notes';
   private releasesList = signal<ReleaseType[]>([]);
 
   private http: HttpClient = inject(HttpClient);
@@ -45,13 +55,13 @@ export class ReleaseService {
     );
   }
 
-  searchReleases(applicationId: number, version: string, env: string, status: string): Observable<ReleaseType[]> {
+  searchReleases(applicationId: string, version: string, env: string, status: string): Observable<ReleaseType[]> {
     return this.http
       .get<ReleaseType[]>(`${this.baseUrl}`, {
         params: {
-          applicationId: applicationId.toString(),
+          applicationId,
           version,
-          env,
+          environment: env,
           status,
         },
       })
@@ -75,55 +85,77 @@ export class ReleaseService {
     );
   }
 
-  approveRelease(id: number): void {
-    this.http
-      .post<ReleaseType>(
-        `${this.baseUrl}/${id}/approve`,
-        {},
-      )
-      .subscribe({
-        next: () => {
-          this.notify.showSuccess(
-            `Release aprovada com sucesso: ID ${id}.`,
-          );
-          return true;
-        },
-        error: (error) => this.handleError(error),
-      });
+  approveRelease(id: string): Observable<boolean> {
+    return this.http.post<void>(`${this.baseUrl}/${id}/approve`, {}).pipe(
+      map(() => {
+        this.notify.showSuccess(`Release aprovada com sucesso: ID ${id}.`);
+        return true;
+      }),
+      catchError((error) => this.handleError(error)),
+    );
   }
 
-  disapproveRelease(id: number): void {
-    this.http
-      .post<ReleaseType>(
-        `${this.baseUrl}/${id}/disapprove`,
-        {},
-      )
-      .subscribe({
-        next: () => {
-          this.notify.showSuccess(
-            `Release reprovada com sucesso: ID ${id}.`,
-          );
-          return true;
-        },
-        error: (error) => this.handleError(error),
-      });
+  disapproveRelease(id: string): Observable<boolean> {
+    return this.http.post<void>(`${this.baseUrl}/${id}/disapprove`, {}).pipe(
+      map(() => {
+        this.notify.showSuccess(`Release reprovada com sucesso: ID ${id}.`);
+        return true;
+      }),
+      catchError((error) => this.handleError(error)),
+    );
   }
 
-  promoteRelease(id: number): void {
-    this.http
-      .post<ReleaseType>(
-        `${this.baseUrl}/${id}/promote`,
-        {},
-      )
-      .subscribe({
-        next: () => {
-          this.notify.showSuccess(
-            `Release promovida com sucesso: ID ${id}.`,
-          );
+  promoteRelease(id: string, idempotencyKey: string): Observable<boolean> {
+    return this.http
+      .post<void>(`${this.baseUrl}/${id}/promote`, {}, {
+        headers: new HttpHeaders({
+          'Idempotency-Key': idempotencyKey,
+        }),
+      })
+      .pipe(
+        map(() => {
+          this.notify.showSuccess(`Release promovida com sucesso: ID ${id}.`);
           return true;
-        },
-        error: (error) => this.handleError(error),
-      });
+        }),
+        catchError((error) => this.handleError(error)),
+      );
+  }
+
+  getEvidenceScore(id: string): Observable<EvidenceScoreType> {
+    return this.http
+      .get<EvidenceScoreType>(`${this.baseUrl}/${id}/evidence-score`)
+      .pipe(catchError((error) => this.handleError(error)));
+  }
+
+  buildIdempotencyKey(releaseId: string): string {
+    if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+      return `release-${releaseId}-${crypto.randomUUID()}`;
+    }
+
+    return `release-${releaseId}-${Date.now()}`;
+  }
+
+  saveLocalReviewNote(note: LocalReviewNote): void {
+    const notes = this.readLocalReviewNotes();
+    notes.push(note);
+    window.sessionStorage.setItem(this.localNotesStorageKey, JSON.stringify(notes));
+  }
+
+  getLocalReviewNotes(releaseId: string): LocalReviewNote[] {
+    return this.readLocalReviewNotes().filter((item) => item.releaseId === releaseId);
+  }
+
+  private readLocalReviewNotes(): LocalReviewNote[] {
+    const raw = window.sessionStorage.getItem(this.localNotesStorageKey);
+    if (!raw) {
+      return [];
+    }
+
+    try {
+      return JSON.parse(raw) as LocalReviewNote[];
+    } catch {
+      return [];
+    }
   }
 
   private handleError(error: HttpErrorResponse) {

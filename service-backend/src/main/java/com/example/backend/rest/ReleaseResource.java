@@ -8,7 +8,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -22,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.backend.domain.entity.EnvironmentEnum;
 import com.example.backend.domain.entity.OutcomeEnum;
 import com.example.backend.domain.entity.StatusEnum;
+import com.example.backend.dto.ReleaseApprovalDecisionRequestDto;
 import com.example.backend.dto.ReleaseRequestDto;
 import com.example.backend.dto.ReleaseResponseDto;
 import com.example.backend.service.ReleaseAuditService;
@@ -44,7 +44,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
         maxAge = RestConstants.CORS_MAX_AGE)
 @RequestMapping("/api/releases")
 @Tag(name = "Releases", description = "Endpoint de gestão de releases")
-@Validated
 public class ReleaseResource {
 
     private final ReleaseService releaseService;
@@ -107,9 +106,11 @@ public class ReleaseResource {
     @PreAuthorize("hasAnyRole('ADMIN','APPROVER')")
     public ResponseEntity<Void> approve(
             @Parameter(description = "ID da release", required = true,
-                example = "10000000-0000-0000-0000-000000000001") @PathVariable final UUID id) {
-        releaseAuditService.logApprove(id);
-        releaseService.approveRelease(id, OutcomeEnum.APPROVED);
+                example = "10000000-0000-0000-0000-000000000001") @PathVariable final UUID id,
+            @RequestBody(required = false) final ReleaseApprovalDecisionRequestDto dto) {
+        releaseAuditService.logApprove(id, dto);
+        releaseService.approveRelease(id, OutcomeEnum.APPROVED, null,
+                dto == null ? null : dto.getNotes());
         return ResponseEntity.noContent().build();
     }
 
@@ -123,9 +124,11 @@ public class ReleaseResource {
     @PreAuthorize("hasAnyRole('ADMIN','APPROVER')")
     public ResponseEntity<Void> disapprove(
             @Parameter(description = "ID da release", required = true,
-                example = "10000000-0000-0000-0000-000000000001") @PathVariable final UUID id) {
-        releaseAuditService.logDisapprove(id);
-        releaseService.approveRelease(id, OutcomeEnum.REJECTED);
+                example = "10000000-0000-0000-0000-000000000001") @PathVariable final UUID id,
+            @RequestBody(required = false) final ReleaseApprovalDecisionRequestDto dto) {
+        releaseAuditService.logDisapprove(id, dto);
+        releaseService.approveRelease(id, OutcomeEnum.REJECTED, null,
+                dto == null ? null : dto.getNotes());
         return ResponseEntity.noContent().build();
     }
 

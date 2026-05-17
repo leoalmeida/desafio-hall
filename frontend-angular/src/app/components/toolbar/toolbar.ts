@@ -64,8 +64,15 @@ export class Toolbar implements AfterViewInit {
         if (
           route.path !== '**' &&
           route.path !== 'login' &&
-          route.path !== 'acesso-negado'
+          route.path !== 'acesso-negado' &&
+          route.redirectTo === undefined
         ) {
+          const requiredRoles = (route.data?.['requiredRoles'] as string[] | undefined) ?? [];
+
+          if (requiredRoles.length && !this.tokenStorageService.hasAnyRole(requiredRoles)) {
+            continue;
+          }
+
           this.routes.push({
             path: route.path || '',
             descricao: route.data?.['title'] || '',

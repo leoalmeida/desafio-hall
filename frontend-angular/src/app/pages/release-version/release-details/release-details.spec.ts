@@ -21,7 +21,7 @@ describe('ReleaseDetails', () => {
   >;
 
   const mockApplication: ApplicationType = {
-    id: 1,
+    id: '00000000-0000-0000-0000-000000000001',
     name: 'Application Teste',
     ownerTeam: 'desenv',
     repoUrl: '',
@@ -68,8 +68,8 @@ describe('ReleaseDetails', () => {
   it('deve fechar o diálogo ao chamar onSubmit se válido', () => {
     fixture.detectChanges();
     const releaseData = {
-      applicationId: 1,
-      version: 1,
+      applicationId: '00000000-0000-0000-0000-000000000001',
+      version: '1.0.0',
       env: 'DEV' as const,
       status: 'CREATED' as const,
       evidenceUrl: 'http://example.com/evidence',
@@ -86,7 +86,7 @@ describe('ReleaseDetails', () => {
 
   it('não deve fechar o diálogo ao chamar onSubmit se o formulário for inválido', () => {
     fixture.detectChanges();
-    component.formRelease.controls['evidenceUrl'].setValue('');
+    component.formRelease.controls['applicationId'].setValue('');
 
     component.onSubmit();
 

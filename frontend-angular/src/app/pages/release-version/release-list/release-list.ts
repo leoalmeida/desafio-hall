@@ -12,10 +12,12 @@ import { MatTableModule } from '@angular/material/table';
 import { NotificationService } from 'src/app/services/notification.service';
 import { UserType } from 'src/app/models/user-type';
 import { ReleaseService } from '../../../services/release.service';
+import { ReleaseType } from '../../../models/release-type';
 import { LoadingService } from '../../../components/loading-indicator/loading.service';
 import { TokenStorageService } from '../../../services/token-storage.service';
 import { Searchbar } from '../../../components/searchbar/searchbar';
 import { ReleaseDetails } from '../release-details/release-details';
+import { ReleaseWorkflowDialog } from '../release-workflow-dialog/release-workflow-dialog';
 
 @Component({
   selector: 'app-releases-list',
@@ -145,8 +147,12 @@ export class ReleaseList {
   filteredReleaseCount = computed(() => this.filteredReleaseList().length);
 
   get isApprover(): boolean {
-    const role: string = this.loggedUser()?.userData?.role ?? "";
+    const role: string = this.loggedUser()?.userData?.role ?? '';
     return role === 'ROLE_APPROVER' || role === 'ROLE_ADMIN';
+  }
+
+  get isAdmin(): boolean {
+    return this.loggedUser()?.userData?.role === 'ROLE_ADMIN';
   }
 
   handleMessage(message: string): void {
@@ -176,15 +182,83 @@ export class ReleaseList {
     });
   }
 
-  onApprove(id: number): void {
-    this.releaseService.approveRelease(id);
+  onViewWorkflow(release: ReleaseType): void {
+    this.dialogAcao.open(ReleaseWorkflowDialog, {
+      width: '860px',
+      data: { release, mode: 'timeline' },
+    });
   }
 
-  onDisapprove(id: number): void {
-    this.releaseService.disapproveRelease(id);
+  onApprove(release: ReleaseType): void {
+    this.openReleaseActionDialog(release, 'approve');
   }
 
-  onPromote(id: number): void {
-    this.releaseService.promoteRelease(id);
+  onDisapprove(release: ReleaseType): void {
+    this.openReleaseActionDialog(release, 'disapprove');
+  }
+
+  onPromote(release: ReleaseType): void {
+    this.openReleaseActionDialog(release, 'promote');
+  }
+
+  private openReleaseActionDialog(
+    release: ReleaseType,
+    mode: 'approve' | 'disapprove' | 'promote',
+  ): void {
+    const dialogRef = this.dialogAcao.open(ReleaseWorkflowDialog, {
+      width: '860px',
+      data: { release, mode },
+    });
+
+    dialogRef.afterClosed().subscribe((result) => {
+      if (!result || !release.id) {
+        return;
+      }
+
+      if (mode === 'approve') {
+        this.releaseService.approveRelease(release.id).subscribe({
+          next: () => {
+            this.persistLocalReviewNote(release.id!, 'APPROVED', result.notes);
+            this.releaseService.getAll();
+          },
+        });
+        return;
+      }
+
+      if (mode === 'disapprove') {
+        this.releaseService.disapproveRelease(release.id).subscribe({
+          next: () => {
+            this.persistLocalReviewNote(release.id!, 'REJECTED', result.notes);
+            this.releaseService.getAll();
+          },
+        });
+        return;
+      }
+
+      this.releaseService
+        .promoteRelease(release.id, this.releaseService.buildIdempotencyKey(release.id))
+        .subscribe({
+          next: () => this.releaseService.getAll(),
+        });
+    });
+  }
+
+  private persistLocalReviewNote(
+    releaseId: string,
+    action: 'APPROVED' | 'REJECTED',
+    notes?: string,
+  ): void {
+    const trimmedNotes = notes?.trim();
+    if (!trimmedNotes) {
+      return;
+    }
+
+    this.releaseService.saveLocalReviewNote({
+      releaseId,
+      action,
+      notes: trimmedNotes,
+      actor: this.loggedUser()?.email,
+      createdAt: new Date().toISOString(),
+    });
   }
 }

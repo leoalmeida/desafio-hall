@@ -1,5 +1,5 @@
 export interface ApplicationType {
-  id?: number;
+  id?: string;
   name: string;
   ownerTeam: string;
   repoUrl: string;

@@ -1,6 +1,6 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { catchError, Observable, throwError } from 'rxjs';
+import { catchError, map, Observable, throwError } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { AuditLogType } from '../models/auditlog-type';
 import { NotificationService } from './notification.service';
@@ -22,7 +22,7 @@ export class AuditlogService {
   items = this.auditLogsList.asReadonly();
 
   getAll(): void {
-    this.http.get<AuditLogType[]>(`${this.baseUrl}`).subscribe({
+    this.listAll().subscribe({
       next: (lista: AuditLogType[]) => {
         this.notify.showSuccess(
           `Logs de auditoria carregados com sucesso. Total de registros: ${lista.length}.`,
@@ -31,6 +31,25 @@ export class AuditlogService {
       },
       error: (error) => this.handleError(error),
     });
+  }
+
+  listAll(): Observable<AuditLogType[]> {
+    return this.http
+      .get<AuditLogType[]>(`${this.baseUrl}`)
+      .pipe(catchError((error) => this.handleError(error)));
+  }
+
+  findReleaseTimeline(releaseId: string): Observable<AuditLogType[]> {
+    return this.listAll().pipe(
+      map((lista) =>
+        lista.filter(
+          (item) =>
+            item.entityId === releaseId ||
+            item.payload?.includes(releaseId) ||
+            item.action?.includes(releaseId),
+        ),
+      ),
+    );
   }
 
   searchByActor(actor: string): Observable<AuditLogType[]> {

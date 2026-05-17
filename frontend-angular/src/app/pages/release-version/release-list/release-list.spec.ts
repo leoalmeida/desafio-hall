@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ReleaseList } from './release-list';
 import { ReleaseService } from '../../../services/release.service';
-import { LoadingService } from '../../core/loading-indicator/loading.service';
+import { LoadingService } from '../../../components/loading-indicator/loading.service';
 import { TokenStorageService } from '../../../services/token-storage.service';
 import { MatDialog } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
@@ -21,17 +21,17 @@ describe('ReleaseList', () => {
   let dialogSpy: SpyObj<MatDialog>;
 
   const mockReleases: ReleaseType[] = [
-    { id: 1, applicationId: 1, version: 'V1.0', env: 'PROD', status: 'APPROVED_PROD', evidenceUrl: '' },
-    { id: 2, applicationId: 1, version: 'V1.1', env: 'PROD', status: 'PENDING_PREPROD', evidenceUrl: '' },
-    { id: 3, applicationId: 2, version: 'V2.0', env: 'DEV', status: 'CREATED', evidenceUrl: '' },
+    { id: '10000000-0000-0000-0000-000000000001', applicationId: '00000000-0000-0000-0000-000000000001', version: 'V1.0', env: 'PROD', status: 'APPROVED_PROD', evidenceUrl: '' },
+    { id: '10000000-0000-0000-0000-000000000002', applicationId: '00000000-0000-0000-0000-000000000001', version: 'V1.1', env: 'PROD', status: 'PENDING_PREPROD', evidenceUrl: '' },
+    { id: '10000000-0000-0000-0000-000000000003', applicationId: '00000000-0000-0000-0000-000000000002', version: 'V2.0', env: 'DEV', status: 'CREATED', evidenceUrl: '' },
   ];
 
   const mockUser: UserType = {
     email: 'user@test.com',
     name: 'Usuario Teste',
-    role: 'VIEWER',
+    role: 'ROLE_VIEWER',
     token: {} as TokenType,
-    userData: {} as TokenValueType
+    userData: { role: 'ROLE_VIEWER' } as TokenValueType,
   };
 
   beforeEach(async () => {

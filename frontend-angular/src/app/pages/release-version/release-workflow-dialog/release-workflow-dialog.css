@@ -1,0 +1,115 @@
+.workflow-dialog-content {
+  display: grid;
+  gap: 1rem;
+  min-width: min(92vw, 800px);
+}
+
+.release-summary {
+  display: grid;
+  gap: 0.35rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.policy-summary {
+  margin: 0;
+  color: #44516a;
+}
+
+.workflow-warning {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  background: #fff7e8;
+  color: #7a4b00;
+}
+
+.checklist-section,
+.review-section,
+.timeline-section {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.checklist-grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.checklist-item {
+  border-radius: 0.75rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid #d7dee8;
+  background: #f7f9fc;
+}
+
+.checklist-item.ok {
+  border-color: #a8d5b2;
+  background: #f1fbf4;
+}
+
+.checklist-item.failed {
+  border-color: #e1b4b4;
+  background: #fff5f5;
+}
+
+.checklist-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+}
+
+.checklist-item p,
+.timeline-item p {
+  margin: 0.35rem 0 0;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.timeline-list {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.timeline-item {
+  display: grid;
+  grid-template-columns: 16px 1fr;
+  gap: 0.85rem;
+}
+
+.timeline-dot {
+  width: 12px;
+  height: 12px;
+  margin-top: 0.35rem;
+  border-radius: 999px;
+  background: #0f6cbd;
+}
+
+.timeline-item.approval .timeline-dot {
+  background: #2d7d46;
+}
+
+.timeline-item.audit .timeline-dot {
+  background: #6b46c1;
+}
+
+.timeline-item.note .timeline-dot {
+  background: #c05621;
+}
+
+.timeline-body {
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.timeline-title-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: baseline;
+}

@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 
 @Injectable()
 export class TokenValueType {
-  id = 0;
+  id = '';
   sub = '';
   email = '';
   name = '';

@@ -2,6 +2,7 @@ package com.example.backend.service;
 
 import com.example.backend.domain.entity.EnvironmentEnum;
 import com.example.backend.domain.entity.StatusEnum;
+import com.example.backend.dto.ReleaseApprovalDecisionRequestDto;
 import com.example.backend.dto.ReleaseEvidenceUpdateRequestDto;
 import com.example.backend.dto.ReleaseRequestDto;
 import com.example.backend.security.AuditLogManager;
@@ -58,25 +59,27 @@ public class ReleaseAuditService {
     /**
      * Registra auditoria de aprovação.
      */
-    public void logApprove(final UUID id) {
+    public void logApprove(final UUID id, final ReleaseApprovalDecisionRequestDto dto) {
         auditLogManager.logAction(
                 SecurityContextUtils.getCurrentUserEmail(),
                 "APPROVE",
                 "Release",
                 id.toString(),
-                auditLogManager.toJsonNode("releaseId", id.toString()));
+                auditLogManager.toJsonNode(
+                    String.format("{releaseId:%s, notes:%s}", id, dto == null ? null : dto.getNotes())));
     }
 
     /**
      * Registra auditoria de reprovação.
      */
-    public void logDisapprove(final UUID id) {
+    public void logDisapprove(final UUID id, final ReleaseApprovalDecisionRequestDto dto) {
         auditLogManager.logAction(
                 SecurityContextUtils.getCurrentUserEmail(),
                 "DISAPPROVE",
                 "Release",
                 id.toString(),
-                auditLogManager.toJsonNode("ReleaseID", id.toString()));
+                auditLogManager.toJsonNode(
+                    String.format("{releaseId:%s, notes:%s}", id, dto == null ? null : dto.getNotes())));
     }
 
     /**

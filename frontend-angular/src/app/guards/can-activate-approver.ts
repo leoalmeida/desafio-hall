@@ -5,5 +5,11 @@ import { TokenStorageService } from '../services/token-storage.service';
 export const canActivateApprover: CanActivateFn = () => {
   const router = inject(Router);
   const tokenService = inject(TokenStorageService);
-  return tokenService.isAuthenticated() ? true : router.parseUrl('/login');
+  if (!tokenService.isAuthenticated()) {
+    return router.parseUrl('/login');
+  }
+
+  return tokenService.hasAnyRole(['ROLE_APPROVER', 'ROLE_ADMIN'])
+    ? true
+    : router.parseUrl('/acesso-negado');
 };

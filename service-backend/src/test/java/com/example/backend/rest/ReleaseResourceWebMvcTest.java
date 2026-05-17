@@ -28,6 +28,7 @@ import com.example.backend.config.SecurityConfig;
 import com.example.backend.domain.entity.EnvironmentEnum;
 import com.example.backend.domain.entity.OutcomeEnum;
 import com.example.backend.domain.entity.StatusEnum;
+import com.example.backend.dto.ReleaseApprovalDecisionRequestDto;
 import com.example.backend.dto.ReleaseRequestDto;
 import com.example.backend.dto.ReleaseResponseDto;
 import com.example.backend.exception.BusinessException;
@@ -192,18 +193,27 @@ class ReleaseResourceWebMvcTest {
                         .header(HttpHeaders.AUTHORIZATION, AUTH_HEADER))
                 .andExpect(status().isForbidden());
 
-                verify(releaseService, never()).approveRelease(any(UUID.class), any(OutcomeEnum.class));
+                verify(releaseService, never()).approveRelease(any(UUID.class), any(OutcomeEnum.class), any(), any());
     }
 
     @Test
     void approveDeveRetornar204ComTokenAdmin() throws Exception {
         mockAdminToken();
+        ReleaseApprovalDecisionRequestDto request = ReleaseApprovalDecisionRequestDto.builder()
+                .notes("Aprovado pela mudança controlada")
+                .build();
 
                 mockMvc.perform(post("/api/releases/" + RELEASE_ID + "/approve")
-                        .header(HttpHeaders.AUTHORIZATION, AUTH_HEADER))
+                        .header(HttpHeaders.AUTHORIZATION, AUTH_HEADER)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isNoContent());
 
-                verify(releaseService).approveRelease(RELEASE_ID, OutcomeEnum.APPROVED);
+                verify(releaseService).approveRelease(
+                        RELEASE_ID,
+                        OutcomeEnum.APPROVED,
+                        null,
+                        "Aprovado pela mudança controlada");
     }
 
     // --- POST /api/releases/{id}/disapprove ---
@@ -211,12 +221,21 @@ class ReleaseResourceWebMvcTest {
     @Test
     void disapproveDeveRetornar204ComTokenAdmin() throws Exception {
         mockAdminToken();
+        ReleaseApprovalDecisionRequestDto request = ReleaseApprovalDecisionRequestDto.builder()
+                .notes("Rollback solicitado")
+                .build();
 
                 mockMvc.perform(post("/api/releases/" + RELEASE_ID + "/disapprove")
-                        .header(HttpHeaders.AUTHORIZATION, AUTH_HEADER))
+                        .header(HttpHeaders.AUTHORIZATION, AUTH_HEADER)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isNoContent());
 
-                verify(releaseService).approveRelease(RELEASE_ID, OutcomeEnum.REJECTED);
+                verify(releaseService).approveRelease(
+                        RELEASE_ID,
+                        OutcomeEnum.REJECTED,
+                        null,
+                        "Rollback solicitado");
     }
 
     @Test

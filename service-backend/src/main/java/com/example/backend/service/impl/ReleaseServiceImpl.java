@@ -26,6 +26,7 @@ import com.example.backend.dto.ReleaseEvidenceUpdateRequestDto;
 import com.example.backend.exception.BusinessException;
 import com.example.backend.mapper.ReleaseMapper;
 import com.example.backend.policy.PolicyService;
+import com.example.backend.security.SecurityContextUtils;
 import com.example.backend.service.ReleaseService;
 
 import jakarta.persistence.EntityNotFoundException;
@@ -83,7 +84,10 @@ public class ReleaseServiceImpl implements ReleaseService {
     @Override
     @Transactional(readOnly = true)
     public List<ReleaseResponseDto> find(
-            final UUID applicationId, final String version, final EnvironmentEnum environment, final StatusEnum status)
+            final UUID applicationId,
+            final String version,
+            final EnvironmentEnum environment,
+            final StatusEnum status)
             throws BusinessException {
         if (applicationId == null) {
             throw new IllegalArgumentException("ID da aplicação inválido");
@@ -138,7 +142,9 @@ public class ReleaseServiceImpl implements ReleaseService {
 
     @Override
     @Transactional
-    public ReleaseResponseDto updateRelease(final UUID id, final ReleaseRequestDto dto)
+    public ReleaseResponseDto updateRelease(
+            final UUID id,
+            final ReleaseRequestDto dto)
             throws EntityNotFoundException, BusinessException {
         if (id == null) {
             throw new IllegalArgumentException("ID da release inválido");
@@ -165,7 +171,9 @@ public class ReleaseServiceImpl implements ReleaseService {
 
     @Override
     @Transactional
-    public ReleaseResponseDto updateEvidenceUrl(final UUID id, final ReleaseEvidenceUpdateRequestDto dto)
+    public ReleaseResponseDto updateEvidenceUrl(
+            final UUID id,
+            final ReleaseEvidenceUpdateRequestDto dto)
             throws EntityNotFoundException, BusinessException {
         if (id == null) {
             throw new IllegalArgumentException("ID da release inválido");
@@ -202,13 +210,20 @@ public class ReleaseServiceImpl implements ReleaseService {
 
     @Override
     @Transactional
-    public void approveRelease(final UUID id, final OutcomeEnum outcome)
+    public void approveRelease(
+            final UUID id,
+            final OutcomeEnum outcome,
+            final String approverEmail,
+            final String notes)
             throws EntityNotFoundException, BusinessException {
         if (id == null) {
             throw new IllegalArgumentException("ID da release inválido");
         }
         if (outcome == null) {
             throw new IllegalArgumentException("Outcome inválido para aprovação de release");
+        }
+        if (approverEmail == null || approverEmail.isBlank()) {
+            throw new IllegalArgumentException("Email do aprovador não pode ser vazio");
         }
         log.info("Processando aprovação para release ID: {} com outcome: {}", id, outcome);
 
@@ -218,42 +233,22 @@ public class ReleaseServiceImpl implements ReleaseService {
 
         policyService.validateFreezeWindow(entity.getEnv());
 
-        if (outcome == OutcomeEnum.APPROVED) {
-            List<Approval> approvals = approvalRepository.findByReleaseId(id);
-            long approvedCount = approvals.stream().filter(a -> a.getOutcome() == OutcomeEnum.APPROVED).count();
-            long totalCount = approvals.size();
-            policyService.validateApprovalThresholds(approvedCount, totalCount);
-        }
+        validateApprovalTransitionAllowed(outcome, entity);
+
+        String effectiveApproverEmail = resolveApproverEmail(approverEmail);
+        List<Approval> approvals = approvalRepository.findByReleaseId(id);
+        validateApprovalThresholdsForDecision(outcome, approvals);
+        persistApprovalDecision(id, outcome, effectiveApproverEmail, notes);
 
         applyApprovalTransition(id, outcome, entity);
 
         repository.saveAndFlush(entity);
     }
 
-    private void applyApprovalTransition(final UUID id, final OutcomeEnum outcome, final Release entity)
-            throws BusinessException {
-        if (outcome == OutcomeEnum.APPROVED) {
-            switch (entity.getStatus()) {
-                case PENDING_PREPROD -> entity.setStatus(StatusEnum.APPROVED_PREPROD);
-                case PENDING_PROD -> entity.setStatus(StatusEnum.APPROVED_PROD);
-                default -> throw new BusinessException("Status da release não permite aprovação");
-            }
-            log.info("Release ID: {} aprovada", id);
-            return;
-        }
-
-        if (outcome == OutcomeEnum.REJECTED) {
-            entity.setStatus(StatusEnum.REJECTED);
-            log.info("Release ID: {} rejeitada", id);
-            return;
-        }
-
-        throw new IllegalArgumentException("Outcome inválido para aprovação de release");
-    }
-
     @Override
     @Transactional
-    public void promoteRelease(final UUID id) throws EntityNotFoundException, BusinessException {
+    public void promoteRelease(
+            final UUID id) throws EntityNotFoundException, BusinessException {
         if (id == null) {
             throw new IllegalArgumentException("ID da release inválido");
         }
@@ -275,6 +270,89 @@ public class ReleaseServiceImpl implements ReleaseService {
                 id,
                 entity.getEnv(),
                 entity.getStatus());
+    }
+
+    private String resolveApproverEmail(final String approverEmail) {
+        String effectiveApproverEmail = approverEmail;
+        if (effectiveApproverEmail == null || effectiveApproverEmail.isBlank()) {
+            effectiveApproverEmail = SecurityContextUtils.getCurrentUserEmail();
+        }
+        if (effectiveApproverEmail == null || effectiveApproverEmail.isBlank()) {
+            throw new IllegalArgumentException("Email do aprovador não pode ser vazio");
+        }
+        return effectiveApproverEmail.trim();
+    }
+
+    private void validateApprovalThresholdsForDecision(final OutcomeEnum outcome, final List<Approval> approvals)
+            throws BusinessException {
+        if (outcome != OutcomeEnum.APPROVED) {
+            return;
+        }
+
+        long approvedCount = approvals.stream().filter(a -> a.getOutcome() == OutcomeEnum.APPROVED).count() + 1;
+        long totalCount = approvals.size() + 1;
+        policyService.validateApprovalThresholds(approvedCount, totalCount);
+    }
+
+    private void persistApprovalDecision(
+            final UUID id,
+            final OutcomeEnum outcome,
+            final String approverEmail,
+            final String notes) {
+        approvalRepository.saveAndFlush(Approval.builder()
+                .releaseId(id)
+                .approverEmail(approverEmail)
+                .outcome(outcome)
+                .notes(normalizeNotes(notes))
+                .timestamp(LocalDateTime.now())
+                .build());
+    }
+
+    private void validateApprovalTransitionAllowed(final OutcomeEnum outcome, final Release entity)
+            throws BusinessException {
+        if (outcome == OutcomeEnum.APPROVED) {
+            switch (entity.getStatus()) {
+                case PENDING_PREPROD, PENDING_PROD -> {
+                    return;
+                }
+                default -> throw new BusinessException("Status da release não permite aprovação");
+            }
+        }
+
+        if (outcome == OutcomeEnum.REJECTED) {
+            return;
+        }
+
+        throw new IllegalArgumentException("Outcome inválido para aprovação de release");
+    }
+
+    private String normalizeNotes(final String notes) {
+        if (notes == null) {
+            return null;
+        }
+        String trimmed = notes.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private void applyApprovalTransition(final UUID id, final OutcomeEnum outcome, final Release entity)
+            throws BusinessException {
+        if (outcome == OutcomeEnum.APPROVED) {
+            switch (entity.getStatus()) {
+                case PENDING_PREPROD -> entity.setStatus(StatusEnum.APPROVED_PREPROD);
+                case PENDING_PROD -> entity.setStatus(StatusEnum.APPROVED_PROD);
+                default -> throw new BusinessException("Status da release não permite aprovação");
+            }
+            log.info("Release ID: {} aprovada", id);
+            return;
+        }
+
+        if (outcome == OutcomeEnum.REJECTED) {
+            entity.setStatus(StatusEnum.REJECTED);
+            log.info("Release ID: {} rejeitada", id);
+            return;
+        }
+
+        throw new IllegalArgumentException("Outcome inválido para aprovação de release");
     }
 
     private void promoteFromDevToPreprod(final Release entity) throws BusinessException {
@@ -351,8 +429,7 @@ public class ReleaseServiceImpl implements ReleaseService {
         String evidenceUrl = entity.getEvidenceUrl();
 
         boolean validUrl = isValidEvidenceUrl(evidenceUrl);
-        boolean reportPattern =
-                containsAnyIgnoreCase(evidenceUrl, "report", "evidence", "quality", "test", "coverage");
+        boolean reportPattern = containsAnyIgnoreCase(evidenceUrl, "report", "evidence", "quality", "test", "coverage");
         boolean passToken = containsAnyIgnoreCase(evidenceUrl, "pass", "passed", "result=pass", "status=pass");
         int statusWeight = statusWeight(entity.getStatus());
         int envWeight = environmentWeight(entity.getEnv());
