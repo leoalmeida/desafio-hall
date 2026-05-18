@@ -1,0 +1,29 @@
+name: Code Quality Analysis for Gateway Module
+
+on:
+  workflow_call:
+
+jobs:
+  code-quality-gateway:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [20]
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          cache-dependency-path: gateway-node/package-lock.json
+
+      - name: Install Dependencies
+        working-directory: gateway-node
+        run: npm ci
+
+      - name: Run Lint Check
+        working-directory: gateway-node
+        run: npm run lint

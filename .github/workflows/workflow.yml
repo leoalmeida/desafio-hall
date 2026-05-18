@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  backend-workflow:
+    uses: ./.github/workflows/workflow-backend.yml
+    secrets: inherit
+  
+  frontend-workflow:
+    uses: ./.github/workflows/workflow-frontend.yml
+    secrets: inherit
+  
+  gateway-workflow:
+    uses: ./.github/workflows/workflow-gateway.yml
+    secrets: inherit
+
+  # Uncomment below to enable Docker build and push after all tests pass
+  # docker:
+  #   needs: [backend-workflow, frontend-workflow, gateway-workflow]
+  #   uses: ./.github/workflows/docker.yml
+  #   secrets: inherit
+  
+  # Uncomment below to enable security scanning
+  # zap-scan:
+  #   needs: docker
+  #   uses: ./.github/workflows/zapscan.yml
+  #   secrets: inherit
+  
+  # Uncomment below to enable cloud deployment
+  # deploy_google:
+  #   needs: zap-scan
+  #   uses: ./.github/workflows/release-gcloud.yml
+  #   secrets: inherit

@@ -1,0 +1,155 @@
+name: Release do projeto utilizando Kubernetes na AWS ECS
+
+on:
+  workflow_call:
+
+jobs:
+  ECS_Frontend:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Configurar Credenciais AWS
+      uses: aws-actions/configure-aws-credentials@v6
+      with:
+        aws-region: us-east-2
+        aws-access-key-id: ${{secrets.AWS_ACCESS_KEY_ID}}
+        aws-secret-access-key: ${{secrets.AWS_SECRET_ACCESS_KEY}}
+        role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+        role-external-id: ${{ secrets.AWS_ROLE_EXTERNAL_ID }}
+        role-duration-seconds: 1200
+        role-session-name: GHActionsSession
+        
+    - name: Obter arquivos de task definition
+      run: aws ecs describe-task-definition --task-definition Tarefa_API-frontend --query taskDefinition > front-task-definition.json
+    
+    - name: Cópia do task definition
+      run: cp front-task-definition.json front-task-definition.json.bkp
+    
+    - name: Fill new image in ECS task def
+      id: task-def
+      uses: aws-actions/amazon-ecs-render-task-definition@v1
+      with:
+        task-definition: front-task-definition.json
+        container-name: frontend-angular
+        image: leoalmeida/frontend-angular:${{github.run_number}}
+        environment-variables: |
+          DATABASE_URL=${{ secrets.DATABASE_URL }}
+
+    - name: Deploy Amazon ECS task def
+      uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+      with:
+        task-definition: ${{ steps.task-def.outputs.task-definition }}
+        service: Tarefa_API-frontend-service-gzpwz55b
+        cluster: API-FRONTEND
+        wait-for-service-stability: true
+    
+    #- name: Requisição de teste
+    #  continue-on-error: true
+    #  run: echo "REQUEST=0" >> $GITHUB_ENV; sleep 30s; wget LB-API-Go-1678230555.us-east-2.elb.amazonaws.com:8000/alunos || echo "REQUEST=1" >> $GITHUB_ENV
+
+    #- name: Rollback Amazon ECS task def
+    #  if: ${{ env.REQUEST != 0 }}
+    #  uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+    #  with:
+    #    task-definition: front-task-definition.json.bkp
+    #    service: Tarefa_API-frontend-service-gzpwz55b
+    #    cluster: API-FRONTEND
+    #    wait-for-service-stability: true
+    
+  ECS_Backend:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Configurar Credenciais AWS
+      uses: aws-actions/configure-aws-credentials@v6
+      with:
+        aws-region: us-east-2
+        aws-access-key-id: ${{secrets.AWS_ACCESS_KEY_ID}}
+        aws-secret-access-key: ${{secrets.AWS_SECRET_ACCESS_KEY}}
+        role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+        role-external-id: ${{ secrets.AWS_ROLE_EXTERNAL_ID }}
+        role-duration-seconds: 1200
+        role-session-name: GHActionsSession
+        
+    - name: Obter arquivos de task definition
+      run: aws ecs describe-task-definition --task-definition Tarefa_API-backend --query taskDefinition > back-task-definition.json
+    
+    - name: Cópia do task definition
+      run: cp back-task-definition.json back-task-definition.json.bkp
+    
+    - name: Fill new image in ECS task def
+      id: task-def
+      uses: aws-actions/amazon-ecs-render-task-definition@v1
+      with:
+        task-definition: back-task-definition.json
+        container-name: service-backend
+        image: leoalmeida/service-backend:${{github.run_number}}
+        environment-variables: |
+          DATABASE_URL=${{ secrets.DATABASE_URL }}
+
+    - name: Deploy Amazon ECS task def
+      uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+      with:
+        task-definition: ${{ steps.task-def.outputs.task-definition }}
+        service: Tarefa_API-backend-service-gzpwz55b
+        cluster: API-BACKEND
+        wait-for-service-stability: true
+    
+    #- name: Requisição de teste
+    #  continue-on-error: true
+    #  run: echo "REQUEST=0" >> $GITHUB_ENV; sleep 30s; wget LB-API-Go-1678230555.us-east-2.elb.amazonaws.com:8000/alunos || echo "REQUEST=1" >> $GITHUB_ENV
+
+    #- name: Rollback Amazon ECS task def
+    #  if: ${{ env.REQUEST != 0 }}
+    #  uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+    #  with:
+    #    task-definition: back-task-definition.json.bkp
+    #    service: Tarefa_API-backend-service-gzpwz55b
+    #    cluster: API-BACKEND
+    #    wait-for-service-stability: true
+
+  ECS_Gateway:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Configurar Credenciais AWS
+      uses: aws-actions/configure-aws-credentials@v6
+      with:
+        aws-region: us-east-2
+        aws-access-key-id: ${{secrets.AWS_ACCESS_KEY_ID}}
+        aws-secret-access-key: ${{secrets.AWS_SECRET_ACCESS_KEY}}
+        role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+        role-external-id: ${{ secrets.AWS_ROLE_EXTERNAL_ID }}
+        role-duration-seconds: 1200
+        role-session-name: GHActionsSession
+
+    - name: Obter arquivos de task definition
+      run: aws ecs describe-task-definition --task-definition Tarefa_API-gateway --query taskDefinition > gateway-task-definition.json
+
+    - name: Cópia do task definition
+      run: cp gateway-task-definition.json gateway-task-definition.json.bkp
+
+    - name: Fill new image in ECS task def
+      id: task-def
+      uses: aws-actions/amazon-ecs-render-task-definition@v1
+      with:
+        task-definition: gateway-task-definition.json
+        container-name: gateway-node
+        image: leoalmeida/gateway-node:${{github.run_number}}
+        environment-variables: |
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+          BACKEND_BASE_URL=${{ secrets.BACKEND_BASE_URL }}
+
+    - name: Deploy Amazon ECS task def
+      uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+      with:
+        task-definition: ${{ steps.task-def.outputs.task-definition }}
+        service: Tarefa_API-gateway-service-gzpwz55b
+        cluster: API-GATEWAY
+        wait-for-service-stability: true
+
+    #- name: Rollback Amazon ECS task def
+    #  if: ${{ env.REQUEST != 0 }}
+    #  uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+    #  with:
+    #    task-definition: gateway-task-definition.json.bkp
+    #    service: Tarefa_API-gateway-service-gzpwz55b
+    #    cluster: API-GATEWAY
+    #    wait-for-service-stability: true

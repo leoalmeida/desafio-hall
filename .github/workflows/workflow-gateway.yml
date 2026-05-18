@@ -1,0 +1,19 @@
+name: CI - Gateway Node.js
+
+on:
+  workflow_call:
+
+jobs:
+  code-quality-gateway:
+    uses: ./.github/workflows/code-quality-gateway.yml
+    secrets: inherit
+  
+  test-gateway:
+    needs: [code-quality-gateway]
+    uses: ./.github/workflows/testes-gateway.yml
+    secrets: inherit
+
+  build-gateway:
+    needs: [test-gateway]
+    uses: ./.github/workflows/build-gateway.yml
+    secrets: inherit

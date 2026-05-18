@@ -1,0 +1,37 @@
+name: Execução de testes do Gateway Node.js
+
+on:
+  workflow_call:
+
+jobs:
+  test-gateway:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [20]
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          cache-dependency-path: gateway-node/package-lock.json
+
+      - name: Install Dependencies
+        working-directory: gateway-node
+        run: npm ci
+
+      - name: Run Gateway Tests
+        working-directory: gateway-node
+        run: npm test
+
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: gateway-test-results
+          path: gateway-node/coverage/
+          retention-days: 1

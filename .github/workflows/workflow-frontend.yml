@@ -1,0 +1,19 @@
+name: CI - Frontend Application
+
+on:
+  workflow_call:
+
+jobs:
+  code-quality-frontend:
+    uses: ./.github/workflows/code-quality-frontend.yml
+    secrets: inherit
+  
+  test-frontend:
+    needs: [code-quality-frontend]
+    uses: ./.github/workflows/testes-frontend.yml
+    secrets: inherit
+
+  build-frontend:
+    needs: [test-frontend]
+    uses: ./.github/workflows/build-frontend.yml
+    secrets: inherit

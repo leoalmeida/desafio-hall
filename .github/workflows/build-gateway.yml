@@ -1,0 +1,32 @@
+name: Build dos artefatos do Gateway Node.js
+
+on:
+  workflow_call:
+
+jobs:
+  build-gateway:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [20]
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          cache-dependency-path: gateway-node/package-lock.json
+
+      - name: Install Dependencies
+        working-directory: gateway-node
+        run: npm ci
+
+      - name: Upload Gateway Artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: gateway-node-artifact
+          path: gateway-node/
+          retention-days: 1
