@@ -1,0 +1,73 @@
+@startuml CICD-Pipeline
+title CI/CD Pipeline - desafio-hall
+!define LIGHTBLUE #D6EAF8
+!define LIGHTGREEN #D5F5E3
+!define LIGHTYELLOW #FEF9E7
+!define LIGHTRED #FADBD8
+
+rectangle "STAGE 1: Trigger & Checkout\n_______" LIGHTBLUE {
+  rectangle "GitHub Event\n(push to main, PR)" as trigger
+  rectangle "git clone\nnpm/Maven cache" as checkout
+  trigger --> checkout
+}
+
+rectangle "STAGE 2: Parallel Builds\n_______" LIGHTGREEN {
+  rectangle "Frontend Build\n- npm install\n- npm run lint:check\n- npm run build:prod" as feBuild
+  rectangle "Gateway Build\n- npm install\n- npm run lint\n- npm test (mocha)" as gwBuild
+  rectangle "Backend Build\n- mvn clean install\n- mvn checkstyle:check\n- mvn pmd:check\n- mvn spotbugs:check\n- mvn test (JUnit 5)\n- mvn verify (integration)\n- mvn jacoco:report" as beBuild
+}
+
+checkout --> feBuild
+checkout --> gwBuild
+checkout --> beBuild
+
+rectangle "STAGE 3: Quality Gates\n_______" LIGHTYELLOW {
+  rectangle "Code Coverage\n(JaCoCo >= 80%)" as coverage
+  rectangle "SonarQube Scan\n(No critical issues)" as sonar
+  rectangle "Lint Check\n(violations = 0)" as lint
+  feBuild --> lint
+  gwBuild --> lint
+  beBuild --> coverage
+  coverage --> sonar
+}
+
+rectangle "STAGE 4: Docker Build & Push\n_______" LIGHTGREEN {
+  rectangle "Build Images\n- leoalmeida/frontend:tag\n- leoalmeida/gateway:tag\n- leoalmeida/backend:tag" as dockerBuild
+  rectangle "Push to Registry\n(Docker Hub / GitHub Packages)" as push
+  sonar --> dockerBuild
+  dockerBuild --> push
+}
+
+rectangle "STAGE 5: Deploy\n_______" LIGHTBLUE {
+  rectangle "Deploy to DEV\n(auto, docker-compose up)" as deployDev
+  rectangle "Smoke Tests\non DEV" as testDev
+  
+  rectangle "Deploy to STAGING\n(manual approval, kubectl)" as deployStagging
+  rectangle "E2E Tests\n(Playwright)\nPerf Tests" as testStaging
+  
+  rectangle "Deploy to PROD\n(manual approval, blue-green)" as deployProd
+  rectangle "Health Check\nMonitoring & Alerts" as testProd
+  
+  push --> deployDev
+  deployDev --> testDev
+  testDev --> deployStagging
+  deployStagging --> testStaging
+  testStaging --> deployProd
+  deployProd --> testProd
+}
+
+rectangle "ARTIFACTS & NOTIFICATIONS\n_______" LIGHTYELLOW {
+  rectangle "Store Artifacts\n- code-coverage (JaCoCo, LCOV)\n- build logs\n- test reports (JUnit XML)" as artifacts
+  rectangle "Slack Notifications\n(success/failure)" as slack
+  rectangle "GitHub Release\n(annotated tag)" as release
+  testProd --> artifacts
+  artifacts --> slack
+  artifacts --> release
+}
+
+rectangle "GATES & ROLLBACK\n_______" LIGHTRED {
+  rectangle "On Failure:\n- Stop pipeline\n- Notify team\n- kubectl rollout undo" as rollback
+  slack --> rollback
+}
+
+@enduml

@@ -11,6 +11,7 @@ Diagramas de arquitetura seguindo o [modelo C4](https://c4model.com/) e usando [
 | [c3-component-backend.puml](c3-component-backend.puml) | Nível 3 — Componente | Internos do service-backend |
 | [c4-deployment.puml](c4-deployment.puml) | Nível 4 — Implantação | Docker Compose / Kubernetes |
 | [saga-release-promotion.puml](saga-release-promotion.puml) | SAGA (Orquestração) | Fluxo completo de promoção DEV → PRE-PROD → PROD com compensações |
+| [cicd-pipeline.puml](cicd-pipeline.puml) | CI/CD Pipeline | Estágios de build, testes, quality gates, docker push e deploy |
 
 ## Como visualizar
 
