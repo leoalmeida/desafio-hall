@@ -8,20 +8,19 @@ services:
       dockerfile: Dockerfile
     image: leoalmeida/service-backend:latest
     container_name: service-backend
-    env_file: ./.env
     ports:
-      - ${SPRING_LOCAL_PORT}:${SPRING_DOCKER_PORT}
+      - ${{ { SPRING_LOCAL_PORT }}:${{ { SPRING_DOCKER_PORT }}
     environment: 
-      SPRING_LOCAL_PORT: ${SPRING_DOCKER_PORT}
+      SPRING_LOCAL_PORT: ${{ SPRING_DOCKER_PORT }}
       SPRING_APPLICATION_JSON: '{
-          "spring.datasource.url" : "jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}",
-          "spring.datasource.username" : "${DB_USERNAME}",
-          "spring.datasource.password" : "${DB_PASSWORD}",
-          "security.jwt.secret" : "${JWT_SECRET}",
-          "security.jwt.algorithm" : "${JWT_ALGORITHM}",
-          "security.jwt.expiration-ms" : "${JWT_EXPIRATION_MS}",
-          "security.policy.file.path" : "${POLICY_FILE_PATH}"
-        }'
+          "spring.datasource.url" : "jdbc:postgresql://${{ DB_HOST }}:${{ DB_PORT }}/${{ DB_NAME }}",
+          "spring.datasource.username" : "${{ DB_USERNAME }}",
+          "spring.datasource.password" : "${{ DB_PASSWORD }}",
+          "security.jwt.secret" : "${{ JWT_SECRET }}",
+          "security.jwt.algorithm" : "${{ JWT_ALGORITHM }}",
+          "security.jwt.expiration-ms" : "${{ JWT_EXPIRATION_MS }}",
+          "security.policy.file.path" : "${{ POLICY_FILE_PATH }}"
+         }}'
     volumes:
       - .m2:/root/.m2
     stdin_open: true
@@ -36,15 +35,15 @@ services:
     image: leoalmeida/gateway-node:latest
     container_name: gateway-node
     ports:
-      - ${API_GATEWAY_LOCAL_PORT}:${API_GATEWAY_DOCKER_PORT}
+      - ${{ API_GATEWAY_LOCAL_PORT }}:${{ API_GATEWAY_DOCKER_PORT }}
     environment:
-      PORT: ${API_GATEWAY_DOCKER_PORT}
-      BACKEND_BASE_URL: http://service-backend:${SPRING_DOCKER_PORT}
-      JWT_SECRET: ${JWT_SECRET}
-      JWT_ALGORITHM: ${JWT_ALGORITHM}
-      JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS}
-      BACKEND_LOG_LEVEL: ${BACKEND_LOG_LEVEL}
-      GLOBAL_LOG_LEVEL: ${GLOBAL_LOG_LEVEL}
+      PORT: ${{ API_GATEWAY_DOCKER_PORT }}
+      BACKEND_BASE_URL: http://service-backend:${{ SPRING_DOCKER_PORT }}
+      JWT_SECRET: ${{ JWT_SECRET }}
+      JWT_ALGORITHM: ${{ JWT_ALGORITHM }}
+      JWT_EXPIRATION_MS: ${{ JWT_EXPIRATION_MS }}
+      BACKEND_LOG_LEVEL: ${{ BACKEND_LOG_LEVEL }}
+      GLOBAL_LOG_LEVEL: ${{ GLOBAL_LOG_LEVEL }}
     volumes:
       - ./gateway-node:/usr/src/app
       - /usr/src/app/node_modules
@@ -60,9 +59,9 @@ services:
     image: leoalmeida/frontend-angular:latest
     container_name: frontend-angular
     ports:
-      - ${FRONTEND_LOCAL_PORT}:${FRONTEND_DOCKER_PORT}
+      - ${{ FRONTEND_LOCAL_PORT }}:${{ FRONTEND_DOCKER_PORT }}
     environment:
-      PORT: ${FRONTEND_DOCKER_PORT}
+      PORT: ${{ FRONTEND_DOCKER_PORT }}
     volumes:
       - ./frontend-angular:/usr/src/app
       - /usr/src/app/node_modules
@@ -75,17 +74,16 @@ services:
     image: postgres:13
     container_name: postgres
     restart: unless-stopped
-    env_file: ./.env
     environment:
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_NAME}
-      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${{ DB_PASSWORD }}
+      POSTGRES_DB: ${{ DB_NAME }}
+      POSTGRES_USER: ${{ DB_USERNAME }}
     ports:
-      - "${POSTGRES_LOCAL_PORT}:${POSTGRES_DOCKER_PORT}"
+      - "${{ POSTGRES_LOCAL_PORT }}:${{ POSTGRES_DOCKER_PORT }}"
     volumes:
       - db_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -U $${{ POSTGRES_USER }} -d $${{ POSTGRES_DB }}"]
       interval: 10s
       timeout: 5s
       retries: 10
