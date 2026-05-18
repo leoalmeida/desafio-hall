@@ -1,0 +1,27 @@
+@startuml C1-Context
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+LAYOUT_WITH_LEGEND()
+
+title [C1] Diagrama de Contexto - Sistema de Gestao de Releases (Aurora GeoEnergy)
+
+' Pessoas
+Person(admin, "Administrador", "Gerencia aplicacoes, usuarios\ne configuracoes de politica.")
+Person(approver, "Aprovador", "Revisa e aprova/rejeita\npromocoes de releases.")
+Person(viewer, "Visualizador", "Consulta releases, aprovacoes\ne historico de auditoria.")
+
+' Sistema principal
+System(releaseSystem, "Release Management System", "Centraliza o ciclo de vida de releases\n(DEV -> PRE-PROD -> PROD), evidencias\ne aprovacoes formais com auditoria completa.")
+
+' Sistemas externos
+System_Ext(idpSystem, "Identity Provider (JWT)", "Emite tokens JWT para autenticacao.\nPode ser um IdP externo ou o proprio backend.")
+System_Ext(cicdSystem, "CI/CD Pipeline", "Aciona promocoes de releases via API\nde forma automatizada.")
+
+' Relacoes
+Rel(admin, releaseSystem, "Gerencia aplicacoes e usuarios", "HTTPS / JSON")
+Rel(approver, releaseSystem, "Aprova ou rejeita releases", "HTTPS / JSON")
+Rel(viewer, releaseSystem, "Consulta releases e historico", "HTTPS / JSON")
+Rel(releaseSystem, idpSystem, "Valida tokens JWT", "JWT / RS256 ou HS256")
+Rel(cicdSystem, releaseSystem, "Aciona promocao de release via API", "HTTPS / Bearer Token")
+
+@enduml

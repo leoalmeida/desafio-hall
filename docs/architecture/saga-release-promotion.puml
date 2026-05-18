@@ -1,0 +1,234 @@
+@startuml SAGA-ReleasePromotion
+!theme plain
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+skinparam maxMessageSize 160
+skinparam sequenceGroupBorderColor #666666
+skinparam sequenceGroupBackgroundColor #F5F5F5
+skinparam noteBorderColor #999999
+skinparam noteBackgroundColor #FFFDE7
+skinparam ArrowColor #333333
+skinparam LifeLineBorderColor #555555
+
+title SAGA — Promoção de Release (Orchestration-based)\nDEV → PRE-PROD → PROD
+
+' ─── Participantes ───────────────────────────────────────────────
+actor       "Usuário\n(admin/approver)" as User
+participant "API Gateway\n(Node.js)"    as Gateway   #D6EAF8
+participant "ReleasePromotion\nCoordinator"  as Coord    #D5F5E3
+participant "IdempotencyService"        as Idmp     #FEF9E7
+participant "ReleaseService"            as RelSvc   #D5F5E3
+participant "PolicyService"             as Policy   #E8DAEF
+participant "ApprovalService"           as ApprSvc  #D5F5E3
+participant "AuditLogManager"           as Audit    #FADBD8
+database    "PostgreSQL"                as DB       #EAEDED
+
+' ════════════════════════════════════════════════════════════════
+'  PASSO 0 — Pré-condição: Release criada em DEV
+' ════════════════════════════════════════════════════════════════
+note over DB
+  Estado inicial:
+  release.env    = DEV
+  release.status = CREATED
+end note
+
+== FASE 1: Promoção DEV → PRE-PROD ==
+
+User    ->  Gateway  : POST /api/releases/{id}/promote\n[Idempotency-Key: <uuid>]
+Gateway ->  Coord    : promote(id, idempotencyKey)
+
+' ── Passo 1: Verificar Idempotência ─────────────────────────────
+group Passo 1 — Idempotência [transação compensatória: abort]
+    Coord   ->  Idmp   : begin(PROMOTE_RELEASE, key, id, hash)
+    Idmp    ->  DB     : INSERT idempotency_records (PROCESSING)
+    DB      --> Idmp   : ok
+    Idmp    --> Coord  : shouldProcess = true
+
+    alt Chave duplicada — já em processamento
+        Idmp    --> Coord  : shouldProcess = false, state = PROCESSING
+        Coord   --> Gateway: 409 Conflict\n"Idempotency-Key já está em processamento"
+        Gateway --> User   : 409 Conflict
+    else Chave duplicada — já completada
+        Idmp    --> Coord  : shouldProcess = false, state = COMPLETED
+        Coord   --> Gateway: 204 No Content (resposta cacheada)
+        Gateway --> User   : 204 No Content
+    end
+end
+
+' ── Passo 2: Validar Freeze Window PREPROD ───────────────────────
+group Passo 2 — Validação de Política [transação compensatória: rollback status]
+    Coord   ->  RelSvc  : promoteRelease(id)
+    RelSvc  ->  DB      : SELECT release WHERE id
+    DB      --> RelSvc  : release {env=DEV, status=CREATED}
+    RelSvc  ->  Policy  : validateFreezeWindow(PREPROD)
+    Policy  --> RelSvc  : ok
+
+    alt Janela de Freeze ativa
+        Policy  --> RelSvc  : BusinessException("Freeze window ativa")
+        RelSvc  --> Coord   : lança exceção
+        Coord   ->  Idmp    : abort(PROMOTE_RELEASE, key)
+        Idmp    ->  DB      : UPDATE idempotency_records SET status = ABORTED
+        Coord   --> Gateway : 422 Unprocessable Entity
+        Gateway --> User    : 422 "Promoção bloqueada por freeze window"
+    end
+end
+
+' ── Passo 3: Persistir promoção DEV→PREPROD ─────────────────────
+group Passo 3 — Atualizar Release [transação compensatória: reverter env/status]
+    RelSvc  ->  DB     : UPDATE release SET env=PREPROD, status=PENDING_PREPROD
+    DB      --> RelSvc : ok
+    RelSvc  --> Coord  : ok
+
+    alt Falha de persistência (ex: constraint violation)
+        DB      --> RelSvc  : SQLException
+        RelSvc  --> Coord   : lança exceção
+        Coord   ->  Idmp    : abort(PROMOTE_RELEASE, key)
+        Idmp    ->  DB      : UPDATE idempotency_records SET status = ABORTED
+        Coord   --> Gateway : 500 Internal Server Error
+    end
+end
+
+' ── Passo 4: Registrar Auditoria ────────────────────────────────
+group Passo 4 — Auditoria [transação compensatória: nenhuma — fire & forget]
+    Coord   ->  Audit  : logAction(userEmail, "PROMOTE", "Release", id)
+    Audit   ->  DB     : INSERT audit_logs
+    DB      --> Audit  : ok
+    Audit   --> Coord  : ok
+end
+
+' ── Passo 5: Concluir Idempotência ──────────────────────────────
+group Passo 5 — Concluir Idempotência
+    Coord   ->  Idmp   : complete(PROMOTE_RELEASE, key, 204)
+    Idmp    ->  DB     : UPDATE idempotency_records SET status = COMPLETED
+    DB      --> Idmp   : ok
+    Idmp    --> Coord  : ok
+    Coord   --> Gateway: 204 No Content
+    Gateway --> User   : 204 No Content
+end
+
+note over DB
+  Estado após Fase 1:
+  release.env    = PREPROD
+  release.status = PENDING_PREPROD
+end note
+
+== FASE 2: Aprovação para PRE-PROD ==
+
+User    ->  Gateway  : POST /api/approvals\n{releaseId, outcome: APPROVED, notes}
+Gateway ->  ApprSvc  : approve(releaseId, outcome, approverEmail, notes)
+
+' ── Passo 6: Validar Transição de Status ────────────────────────
+group Passo 6 — Validação de Transição
+    ApprSvc ->  DB     : SELECT release WHERE id
+    DB      --> ApprSvc: release {status=PENDING_PREPROD}
+    ApprSvc ->  Policy  : validateFreezeWindow(PREPROD)
+    Policy  --> ApprSvc : ok
+
+    alt Status inválido para aprovação
+        ApprSvc --> Gateway: 422 "Status da release não permite aprovação"
+        Gateway --> User   : 422 Unprocessable Entity
+    end
+end
+
+' ── Passo 7: Validar Threshold de Aprovações ────────────────────
+group Passo 7 — Validação de Threshold [transação compensatória: nenhuma]
+    ApprSvc ->  DB     : SELECT approvals WHERE releaseId
+    DB      --> ApprSvc: lista de aprovações existentes
+    ApprSvc ->  Policy  : validateApprovalThresholds(approvedCount, totalCount)
+    Policy  --> ApprSvc : ok
+
+    alt Threshold não atingido
+        Policy  --> ApprSvc : BusinessException("Threshold mínimo não atingido")
+        ApprSvc --> Gateway : 422 Unprocessable Entity
+        Gateway --> User    : 422 "Aprovações insuficientes"
+    end
+end
+
+' ── Passo 8: Persistir Aprovação e Transição ────────────────────
+group Passo 8 — Persistência da Aprovação
+    ApprSvc ->  DB     : INSERT approval {APPROVED}
+    ApprSvc ->  DB     : UPDATE release SET status=APPROVED_PREPROD
+    DB      --> ApprSvc: ok
+    ApprSvc --> Gateway: 201 Created
+    Gateway --> User   : 201 Created
+
+    alt Outcome = REJECTED
+        ApprSvc ->  DB     : INSERT approval {REJECTED}
+        ApprSvc ->  DB     : UPDATE release SET status=REJECTED
+        DB      --> ApprSvc: ok
+        ApprSvc --> Gateway: 201 Created
+        Gateway --> User   : 201 Created
+    end
+end
+
+note over DB
+  Estado após Fase 2 (aprovado):
+  release.status = APPROVED_PREPROD
+  approval.outcome = APPROVED
+end note
+
+== FASE 3: Promoção PRE-PROD → PROD ==
+
+User    ->  Gateway  : POST /api/releases/{id}/promote\n[Idempotency-Key: <uuid2>]
+Gateway ->  Coord    : promote(id, idempotencyKey2)
+Coord   ->  Idmp    : begin(PROMOTE_RELEASE, key2, id, hash)
+Idmp    ->  DB      : INSERT idempotency_records (PROCESSING)
+Coord   ->  RelSvc  : promoteRelease(id)
+RelSvc  ->  DB      : SELECT release WHERE id
+DB      --> RelSvc  : release {env=PREPROD, status=APPROVED_PREPROD}
+
+' ── Passo 9: Validar Evidence URL ───────────────────────────────
+group Passo 9 — Validação de Evidence URL [transação compensatória: abort idempotência]
+    RelSvc  ->  RelSvc : validateEvidenceUrl(evidenceUrl)
+
+    alt Evidence URL ausente ou inválida
+        RelSvc  --> Coord   : BusinessException("Evidence URL é obrigatória")
+        Coord   ->  Idmp    : abort(PROMOTE_RELEASE, key2)
+        Idmp    ->  DB      : UPDATE idempotency_records SET status = ABORTED
+        Coord   --> Gateway : 422 Unprocessable Entity
+        Gateway --> User    : 422 "Evidence URL inválida"
+    end
+end
+
+' ── Passo 10: Validar Threshold e Freeze PROD ───────────────────
+group Passo 10 — Política PROD [transação compensatória: abort idempotência]
+    RelSvc  ->  DB     : SELECT approvals WHERE releaseId
+    DB      --> RelSvc : aprovações
+    RelSvc  ->  Policy  : validateFreezeWindow(PROD)
+    Policy  --> RelSvc  : ok
+    RelSvc  ->  Policy  : validateApprovalThresholds(approvedCount, totalCount)
+    Policy  --> RelSvc  : ok
+
+    alt Freeze ou threshold inválidos
+        Policy  --> RelSvc  : BusinessException
+        RelSvc  --> Coord   : lança exceção
+        Coord   ->  Idmp    : abort(PROMOTE_RELEASE, key2)
+        Idmp    ->  DB      : UPDATE idempotency_records SET status = ABORTED
+        Coord   --> Gateway : 422 Unprocessable Entity
+    end
+end
+
+' ── Passo 11: Persistir promoção PREPROD→PROD ───────────────────
+group Passo 11 — Atualizar Release para PROD
+    RelSvc  ->  DB     : UPDATE release SET env=PROD, status=APPROVED_PROD
+    DB      --> RelSvc : ok
+    RelSvc  --> Coord  : ok
+end
+
+' ── Passo 12: Auditoria e conclusão ─────────────────────────────
+Coord   ->  Audit  : logAction(userEmail, "PROMOTE", "Release", id)
+Audit   ->  DB     : INSERT audit_logs
+Coord   ->  Idmp   : complete(PROMOTE_RELEASE, key2, 204)
+Idmp    ->  DB     : UPDATE idempotency_records SET status = COMPLETED
+Coord   --> Gateway: 204 No Content
+Gateway --> User   : 204 No Content
+
+note over DB
+  Estado final (SAGA concluída com sucesso):
+  release.env    = PROD
+  release.status = APPROVED_PROD
+  audit_logs     = 2 entradas (PROMOTE DEV e PROMOTE PREPROD)
+  idempotency    = 2 registros COMPLETED
+end note
+
+@enduml

@@ -1,0 +1,51 @@
+@startuml C4-Deployment
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Deployment.puml
+
+LAYOUT_WITH_LEGEND()
+
+title [C4] Diagrama de Implantacao - Release Management System
+
+' Ambiente: Docker Compose (desenvolvimento / producao local)
+Deployment_Node(host, "Maquina Host", "Linux / Docker Engine") {
+
+    Deployment_Node(dockerNet, "Docker Network: app-network", "Bridge Network") {
+
+        ' Frontend
+        Deployment_Node(feNode, "Container: frontend-angular", "Nginx + Node.js (build)") {
+            Container(frontend, "Frontend Angular SPA", "Angular 21 / Nginx", "Build estatico servido pelo Nginx.\nPorta do host: FRONTEND_LOCAL_PORT\nPorta interna: FRONTEND_DOCKER_PORT (ex: 4200)")
+        }
+
+        ' Gateway
+        Deployment_Node(gwNode, "Container: gateway-node", "Node.js 20 (Alpine)") {
+            Container(gateway, "API Gateway", "Node.js / Express", "Unico ponto de entrada externo.\nPorta do host: API_GATEWAY_LOCAL_PORT\nPorta interna: API_GATEWAY_DOCKER_PORT (ex: 3000)\nVariaveis: PORT, BACKEND_BASE_URL, JWT_SECRET")
+        }
+
+        ' Backend
+        Deployment_Node(beNode, "Container: service-backend", "Eclipse Temurin JRE 17 (Alpine)") {
+            Container(backend, "service-backend", "Java 17 / Spring Boot 3.x", "API REST de negocio.\nPorta do host: SPRING_LOCAL_PORT\nPorta interna: SPRING_DOCKER_PORT (ex: 8081)\nVariaveis: SPRING_APPLICATION_JSON, JWT_SECRET, POLICY_FILE_PATH")
+        }
+
+        ' Banco
+        Deployment_Node(dbNode, "Container: postgres", "PostgreSQL 13") {
+            ContainerDb(db, "PostgreSQL", "PostgreSQL 13", "Dados persistidos em volume Docker.\nPorta interna: 5432\nVariaveis: POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD\nHealth-check: pg_isready")
+        }
+    }
+}
+
+' Ambiente alternativo: Kubernetes (deployment.yaml)
+Deployment_Node(k8sCluster, "Cluster Kubernetes (producao)", "Kubernetes") {
+
+    Deployment_Node(k8sNs, "Namespace: default", "Namespace") {
+
+        Deployment_Node(backendPod, "Pod: desafio-hall (backend)", "Deployment - 1 replica") {
+            Container(backendK8s, "service-backend", "leoalmeida/backend:{{IMAGE_TAG}}", "Imagem producao do backend.\nContainerPort: 8080\nRequests: 2 CPU, 1 Gi RAM")
+        }
+    }
+}
+
+' Relacoes
+Rel(frontend, gateway, "HTTP /api/*",                   "HTTP proxy (proxy.conf.json)")
+Rel(gateway,  backend, "HTTP /api/* (proxy reverso)",   "http://service-backend:SPRING_DOCKER_PORT")
+Rel(backend,  db,      "JDBC",                          "jdbc:postgresql://postgres:5432/mydb")
+
+@enduml

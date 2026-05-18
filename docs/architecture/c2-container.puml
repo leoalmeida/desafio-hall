@@ -1,0 +1,34 @@
+@startuml C2-Container
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+LAYOUT_WITH_LEGEND()
+
+title [C2] Diagrama de Container - Release Management System
+
+' Atores
+Person(usuario, "Usuario (admin / approver / viewer)", "Acessa pelo navegador web.")
+Person_Ext(cicd,   "CI/CD Pipeline", "Chama API via Bearer Token.")
+
+System_Boundary(sys, "Release Management System") {
+
+    ' Frontend
+    Container(frontend, "Frontend Angular SPA", "Angular 21 / TypeScript", "Interface web para gestao de aplicacoes,\nreleases, aprovacoes e auditoria.\nServida via Nginx (porta 4200).")
+
+    ' Gateway
+    Container(gateway, "API Gateway", "Node.js / Express", "Unico ponto de entrada HTTP.\nResponsabilidades: autenticacao JWT,\nautorizacao por role (RBAC), validacao\nde payload, rate-limiting, propagacao\nde requestId/correlationId,\nmetricas e proxy reverso.\nExpoe Swagger UI em /swagger-ui.\n(porta 3000)")
+
+    ' Backend
+    Container(backend, "service-backend", "Java 17 / Spring Boot 3.x", "API REST de negocio.\nGerencia aplicacoes, releases,\naprovacoes, promocoes de ambiente\n(DEV -> PRE-PROD -> PROD),\nauditoria e politica de freeze.\n(porta 8081)")
+
+    ' Banco
+    ContainerDb(db, "PostgreSQL 13", "PostgreSQL", "Persistencia relacional.\nTabelas: applications, releases,\napprovals, audit_logs, users,\nidempotency_records.\n(porta 5432)")
+}
+
+' Relacoes
+Rel(usuario,  frontend, "Acessa via browser",          "HTTPS")
+Rel(cicd,     gateway,  "Chama API diretamente",       "HTTPS / Bearer Token")
+Rel(frontend, gateway,  "Todas as requisicoes API",    "HTTP / JSON", "proxy.conf.json -> /api/*")
+Rel(gateway,  backend,  "Proxy reverso apos auth",     "HTTP / JSON", "/api/* -> http://service-backend:8081")
+Rel(backend,  db,       "Le e escreve dados",          "JDBC / PostgreSQL")
+
+@enduml

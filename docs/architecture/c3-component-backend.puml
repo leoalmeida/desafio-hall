@@ -1,0 +1,100 @@
+@startuml C3-Component-Backend
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_WITH_LEGEND()
+
+title [C3] Diagrama de Componente - service-backend (Spring Boot)
+
+' Containers externos
+Container_Ext(gateway, "API Gateway (Node.js)", "Express", "Repassa requisicoes autenticadas\ncom x-request-id e x-correlation-id.")
+ContainerDb_Ext(db, "PostgreSQL 13", "PostgreSQL", "Banco de dados relacional.")
+
+System_Boundary(backend, "service-backend") {
+
+    ' Camada REST
+    Component(authResource,        "AuthResource",           "@RestController", "POST /api/auth/login\nEmite token JWT.")
+    Component(applicationResource, "ApplicationResource",    "@RestController", "CRUD de aplicacoes\nGET/POST/PUT/DELETE /api/applications")
+    Component(releaseResource,     "ReleaseResource",        "@RestController", "CRUD de releases e\npromocao de ambiente\nGET/POST/PUT /api/releases")
+    Component(approvalResource,    "ApprovalResource",       "@RestController", "Aprovacao/rejeicao de releases\nGET/POST /api/approvals")
+    Component(auditResource,       "AuditLogResource",       "@RestController", "Consulta de logs de auditoria\nGET /api/audit")
+    Component(userResource,        "UserResource",           "@RestController", "Gestao de usuarios\nGET/POST /api/users")
+    Component(evidenceResource,    "ReleaseEvidenceResource","@RestController", "Score de evidencias por release\nGET /api/releases/{id}/evidence")
+    Component(healthResource,      "HealthCheckResource",    "@RestController", "GET /actuator/health")
+
+    ' Seguranca
+    Component(jwtFilter, "JwtAuthenticationFilter", "Spring Security Filter", "Intercepta requisicoes e valida\no token JWT antes dos controllers.")
+    Component(jwtService, "JwtService", "Spring Component", "Gera e valida tokens JWT\n(HS256 / RS256).")
+    Component(securityCfg, "SecurityConfig", "@Configuration", "Configura Spring Security:\ncadeia de filtros, CORS e permissoes\npor endpoint.")
+    Component(auditMgr, "AuditLogManager", "Spring Component", "Registra eventos de auditoria\nde forma centralizada.")
+    Component(correlationFilter, "RequestCorrelationFilter", "OncePerRequestFilter", "Propaga x-request-id e\nx-correlation-id para o contexto\nde log (MDC).")
+
+    ' Servicos de negocio
+    Component(applicationSvc, "ApplicationServiceImpl", "@Service", "Regras de negocio para aplicacoes.")
+    Component(releaseSvc, "ReleaseServiceImpl", "@Service", "Regras de negocio para releases\ne promocao entre ambientes.")
+    Component(promotionSvc, "ReleasePromotionCoordinator", "@Service", "Orquestra promocao de releases:\nvalida aprovacoes e aciona auditoria.")
+    Component(approvalSvc, "ApprovalServiceImpl", "@Service", "Regras de aprovacao e rejeicao.")
+    Component(auditSvc, "AuditLogServiceImpl", "@Service", "Persistencia de eventos de auditoria.")
+    Component(policySvc, "PolicyService", "@Service", "Avalia janelas de freeze e\npoliticas configuraveis (policy.json).")
+    Component(idempotencySvc, "IdempotencyServiceImpl", "@Service", "Garante idempotencia de operacoes\nvia chave unica por requisicao.")
+    Component(authSvc, "AuthServiceImpl", "@Service", "Autenticacao: valida credenciais\ne emite JWT.")
+    Component(userSvc, "UserServiceImpl", "@Service", "Gestao de usuarios e roles.")
+    Component(auditRelSvc, "ReleaseAuditService", "@Service", "Registra auditoria especifica\nde eventos de releases.")
+
+    ' Repositorios
+    Component(appRepo,     "ApplicationRepository",     "Spring Data JPA",  "CRUD de Application.")
+    Component(releaseRepo, "ReleaseRepository",         "Spring Data JPA",  "CRUD de Release.")
+    Component(approvalRepo,"ApprovalRepository",        "Spring Data JPA",  "CRUD de Approval.")
+    Component(auditRepo,   "AuditLogRepository",        "Spring Data JPA",  "CRUD de AuditLog.")
+    Component(userRepo,    "UserRepository",            "Spring Data JPA",  "CRUD de User.")
+    Component(idmpRepo,    "IdempotencyRecordRepository","Spring Data JPA", "Controle de idempotencia.")
+}
+
+' Relacoes: gateway -> filtros -> controllers
+Rel(gateway, jwtFilter,    "Requisição HTTP",             "HTTP / JSON")
+Rel(jwtFilter, jwtService, "Valida token",                "")
+Rel(jwtFilter, correlationFilter, "Encadeia",             "")
+
+Rel(correlationFilter, authResource,        "Passa requisição", "")
+Rel(correlationFilter, applicationResource, "Passa requisição", "")
+Rel(correlationFilter, releaseResource,     "Passa requisição", "")
+Rel(correlationFilter, approvalResource,    "Passa requisição", "")
+Rel(correlationFilter, auditResource,       "Passa requisição", "")
+Rel(correlationFilter, userResource,        "Passa requisição", "")
+Rel(correlationFilter, evidenceResource,    "Passa requisição", "")
+
+' Relacoes: controllers -> servicos
+Rel(authResource,        authSvc,        "usa", "")
+Rel(applicationResource, applicationSvc, "usa", "")
+Rel(releaseResource,     releaseSvc,     "usa", "")
+Rel(releaseResource,     promotionSvc,   "usa", "")
+Rel(approvalResource,    approvalSvc,    "usa", "")
+Rel(auditResource,       auditSvc,       "usa", "")
+Rel(userResource,        userSvc,        "usa", "")
+Rel(evidenceResource,    releaseSvc,     "usa", "")
+
+' Relacoes: servicos -> servicos
+Rel(promotionSvc, approvalSvc,   "verifica aprovacoes", "")
+Rel(promotionSvc, policySvc,     "verifica freeze",     "")
+Rel(promotionSvc, auditMgr,      "registra auditoria",  "")
+Rel(releaseSvc,   idempotencySvc,"garante idempotencia", "")
+Rel(approvalSvc,  auditMgr,      "registra auditoria",  "")
+Rel(authSvc,      jwtService,    "gera token",          "")
+
+' Relacoes: servicos -> repositorios
+Rel(applicationSvc, appRepo,     "persiste", "JPA")
+Rel(releaseSvc,     releaseRepo, "persiste", "JPA")
+Rel(approvalSvc,    approvalRepo,"persiste", "JPA")
+Rel(auditSvc,       auditRepo,   "persiste", "JPA")
+Rel(auditMgr,       auditRepo,   "persiste", "JPA")
+Rel(userSvc,        userRepo,    "persiste", "JPA")
+Rel(idempotencySvc, idmpRepo,    "persiste", "JPA")
+
+' Relacoes: repositorios -> banco
+Rel(appRepo,     db, "SQL", "JDBC")
+Rel(releaseRepo, db, "SQL", "JDBC")
+Rel(approvalRepo,db, "SQL", "JDBC")
+Rel(auditRepo,   db, "SQL", "JDBC")
+Rel(userRepo,    db, "SQL", "JDBC")
+Rel(idmpRepo,    db, "SQL", "JDBC")
+
+@enduml
