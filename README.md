@@ -113,10 +113,10 @@ Migrations Flyway iniciais em `service-backend/src/main/resources/db/migration`:
 - `V1_1_1__create_release_table.sql`: cria `RELEASE`
 - `V1_1_2__create_approval_table.sql`: cria `APPROVAL`
 - `V1_1_3__create_audit_log_table.sql`: cria `AUDITLOG`
-- `V1_1_4__create_auth_table.sql`: cria `AUDITLOG`
-- `V1_1_5__add_release_unique_constraint.sql`: cria `AUDITLOG`
-- `V1_1_6__create_idempotency_record_table.sql`: cria `AUDITLOG`
-- `V1_1_7__insert_app_initial.sql`: inser `AUDITLOG`
+- `V1_1_4__create_auth_tables.sql`: cria `APP_USER` (user management and roles)
+- `V1_1_5__add_release_unique_constraint.sql`: adiciona constraint UNIQUE em RELEASE
+- `V1_1_6__create_idempotency_record_table.sql`: cria `IDEMPOTENCY_RECORD` (request deduplication)
+- `V1_1_7__insert_app_initial.sql`: insere dados iniciais de aplicacao
 
 As entidades principais do backend (`APPLICATION`, `RELEASE`, `APPROVAL`, `AUDITLOG` e `IDEMPOTENCY_RECORD`) usam `UUID` como identificador primário. Filtros e path params como `applicationId`, `releaseId` e `{id}` seguem esse mesmo formato.
 
@@ -184,13 +184,14 @@ Campos aplicados pela policy:
 - `minScore`: score minimo para aprovacao, calculado como percentual de aprovacoes `APPROVED` sobre total de aprovacoes da release
 - `freezeWindows`: bloqueio de aprovacao/promocao por ambiente e janela de horario
 
-Diagramas C4 atualizados da arquitetura:
+Diagramas C4 atualizados da arquitetura (em `docs/architecture/`):
 
-- `docs/architecture/context-diagram.puml`
-- `docs/architecture/container-diagram.puml`
-- `docs/architecture/deployment-diagram.puml`
-- `docs/architecture/saga-pattern.puml`
-- `docs/architecture/component-diagram-gateway.puml`
+- `c1-context.puml` - System context with actors and external systems
+- `c2-container.puml` - Container decomposition (Frontend, Gateway, Backend, Database)
+- `c3-component-backend.puml` - Component-level details of Spring Boot backend
+- `c4-deployment.puml` - Deployment topology (Docker Compose and Kubernetes)
+- `saga-release-promotion.puml` - SAGA pattern for multi-stage release promotion
+- `cicd-pipeline.puml` - CI/CD pipeline stages and quality gates
 
 ## Como Rodar Rapido
 
@@ -345,19 +346,22 @@ cd desafio-hall
 docker compose up --build
 ```
 
-O compose usa variaveis de ambiente como:
+O compose usa variaveis de ambiente como (definidas em `.env`):
 
-- `SPRING_LOCAL_PORT`, `SPRING_DOCKER_PORT`
-- `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USERNAME`, `DB_PASSWORD`
-- `FRONTEND_LOCAL_PORT`, `FRONTEND_DOCKER_PORT`
-- `API_GATEWAY_LOCAL_PORT`, `API_GATEWAY_DOCKER_PORT`
-- `JWT_SECRET`
+- `SPRING_LOCAL_PORT=8081`, `SPRING_DOCKER_PORT=8081`
+- `DB_HOST=localhost`, `DB_PORT=5432`, `DB_NAME=desafio_hall`, `DB_USERNAME=postgres`, `DB_PASSWORD=postgres`
+- `FRONTEND_LOCAL_PORT=80`, `FRONTEND_DOCKER_PORT=4200`
+- `API_GATEWAY_LOCAL_PORT=3000`, `API_GATEWAY_DOCKER_PORT=3000`
+- `JWT_SECRET=your_jwt_secret_key`, `JWT_ALGORITHM=HS256`, `JWT_EXPIRATION_MS=3600000`
+- `TIMEZONE=America/Sao_Paulo`, `LOG_LEVEL=info`
 
 No ambiente Docker:
 
-- o frontend acessa o gateway pela porta publicada em `API_GATEWAY_LOCAL_PORT`
-- o gateway acessa o backend internamente via `BACKEND_BASE_URL=http://service-backend:${SPRING_DOCKER_PORT}`
+- o frontend acessa o gateway pela porta publicada em `API_GATEWAY_LOCAL_PORT` (exposta via `API_GATEWAY_DOCKER_PORT`)
+- o gateway acessa o backend internamente via `http://service-backend:${SPRING_DOCKER_PORT}`
 - o backend acessa o Postgres pelo hostname `postgres`
+
+Nota: Certifique-se de definir as variáveis de ambiente em `.env` ou defina-as diretamente no comando `docker compose up`.
 
 ## Testes e Qualidade
 

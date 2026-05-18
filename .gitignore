@@ -19,6 +19,7 @@ mvnw.cmd
 *.user
 *.userosscache
 *.sln.docstates
+.tmp-pantuml
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
